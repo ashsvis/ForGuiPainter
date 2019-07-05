@@ -9,17 +9,19 @@ namespace GridTableBuilder
     {
         enum DrawMode
         {
+            Rect,
             Line,
-            Rect
+            Drag
         }
 
         bool down;
-        Point firstPoint = Point.Empty;
-        Point lastPoint = Point.Empty;
-        Rectangle selRect = Rectangle.Empty;
-        DrawMode drawMode = DrawMode.Rect;
-
-        Rectangle tableRect = Rectangle.Empty;
+        Point firstPoint;
+        Point lastPoint;
+        Rectangle selRect;
+        DrawMode drawMode;
+        Rectangle tableRect;
+        bool drag;
+        Point dragPoint;
 
         public MainForm()
         {
@@ -32,16 +34,11 @@ namespace GridTableBuilder
             if (e.Button == MouseButtons.Left)
             {
                 down = true;
-                firstPoint = e.Location;
-                switch (drawMode)
-                {
-                    case DrawMode.Line:
-                        lastPoint = e.Location;
-                        break;
-                    case DrawMode.Rect:
-                        selRect.Location = e.Location;
-                        break;
-                }
+                firstPoint = lastPoint = dragPoint = e.Location;
+                drag = !tableRect.IsEmpty && tableRect.Contains(e.Location);
+                drawMode = drag ? DrawMode.Drag : tableRect.IsEmpty ? DrawMode.Rect : DrawMode.Line;
+                selRect.Location = drag ? tableRect.Location : e.Location;
+                selRect.Size = drag ? tableRect.Size : Size.Empty;
                 Invalidate();
             }
         }
@@ -62,6 +59,10 @@ namespace GridTableBuilder
                         location.X = Math.Min(firstPoint.X, e.X);
                         location.Y = Math.Min(firstPoint.Y, e.Y);
                         selRect = new Rectangle(location, new Size(width, heigth));
+                        break;
+                    case DrawMode.Drag:
+                        selRect.Offset(e.X - dragPoint.X, e.Y - dragPoint.Y);
+                        dragPoint = e.Location;
                         break;
                 }
                 Invalidate();
@@ -92,6 +93,10 @@ namespace GridTableBuilder
                             selRect = tableRect = Rectangle.Empty;
                         }
                         break;
+                    case DrawMode.Drag:
+                        tableRect.Location = selRect.Location;
+                        selRect = Rectangle.Empty;
+                        break;
                 }
                 Invalidate();
             }
@@ -113,6 +118,7 @@ namespace GridTableBuilder
                         gr.DrawLine(pen, firstPoint, lastPoint);
                         break;
                     case DrawMode.Rect:
+                    case DrawMode.Drag:
                         gr.DrawRectangle(pen, selRect);
                         break;
                 }
