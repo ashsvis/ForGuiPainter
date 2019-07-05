@@ -1,13 +1,25 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 namespace GridTableBuilder
 {
     public partial class MainForm : Form
     {
+        enum DrawMode
+        {
+            Line,
+            Rect
+        }
+
         bool down;
-        Point first = Point.Empty;
-        Point current = Point.Empty;
+        Point firstPoint = Point.Empty;
+        Point lastPoint = Point.Empty;
+        Rectangle selRect = Rectangle.Empty;
+        DrawMode drawMode = DrawMode.Rect;
+
+        Rectangle tableRect = Rectangle.Empty;
 
         public MainForm()
         {
@@ -20,7 +32,16 @@ namespace GridTableBuilder
             if (e.Button == MouseButtons.Left)
             {
                 down = true;
-                current = first = e.Location;
+                firstPoint = e.Location;
+                switch (drawMode)
+                {
+                    case DrawMode.Line:
+                        lastPoint = e.Location;
+                        break;
+                    case DrawMode.Rect:
+                        selRect.Location = e.Location;
+                        break;
+                }
                 Invalidate();
             }
         }
@@ -29,7 +50,20 @@ namespace GridTableBuilder
         {
             if (down)
             {
-                current = e.Location;
+                switch (drawMode)
+                {
+                    case DrawMode.Line:
+                        lastPoint = e.Location;
+                        break;
+                    case DrawMode.Rect:
+                        var width = Math.Abs(firstPoint.X - e.X);
+                        var heigth = Math.Abs(firstPoint.Y - e.Y);
+                        var location = Point.Empty;
+                        location.X = Math.Min(firstPoint.X, e.X);
+                        location.Y = Math.Min(firstPoint.Y, e.Y);
+                        selRect = new Rectangle(location, new Size(width, heigth));
+                        break;
+                }
                 Invalidate();
             }
         }
@@ -39,7 +73,26 @@ namespace GridTableBuilder
             if (down)
             {
                 down = false;
-                first = current = e.Location;
+                switch (drawMode)
+                {
+                    case DrawMode.Line:
+                        firstPoint = lastPoint = e.Location;
+                        break;
+                    case DrawMode.Rect:
+                        if (tableRect.IsEmpty)
+                        {
+                            tableRect = selRect;
+                            selRect = Rectangle.Empty;
+                            drawMode = DrawMode.Line;
+                            firstPoint = lastPoint = Point.Empty;
+                        }
+                        else
+                        {
+                            drawMode = DrawMode.Rect;
+                            selRect = tableRect = Rectangle.Empty;
+                        }
+                        break;
+                }
                 Invalidate();
             }
         }
@@ -47,7 +100,23 @@ namespace GridTableBuilder
         private void MainForm_Paint(object sender, PaintEventArgs e)
         {
             var gr = e.Graphics;
-            gr.DrawLine(Pens.Black, first, current);
+            if (!tableRect.IsEmpty)
+            {
+                gr.DrawRectangle(Pens.Black, tableRect);
+            }
+            using (var pen = new Pen(Color.Magenta))
+            {
+                pen.DashStyle = DashStyle.Dash;                     
+                switch (drawMode)
+                {
+                    case DrawMode.Line:
+                        gr.DrawLine(pen, firstPoint, lastPoint);
+                        break;
+                    case DrawMode.Rect:
+                        gr.DrawRectangle(pen, selRect);
+                        break;
+                }
+            }
         }
     }
 }
