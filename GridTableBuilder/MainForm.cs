@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
@@ -14,6 +15,13 @@ namespace GridTableBuilder
             WaitRect,
             WaitLine,
             Drag
+        }
+
+        enum SplitKind
+        {
+            None,
+            Vertical,
+            Horizontal
         }
 
         struct Line
@@ -37,6 +45,9 @@ namespace GridTableBuilder
         bool drag;
         Point dragPoint;
         Line splitLine;
+        SplitKind splitKind;
+        List<int> vOffsets = new List<int>();
+        List<int> hOffsets = new List<int>();
 
         public MainForm()
         {
@@ -86,7 +97,7 @@ namespace GridTableBuilder
             }
             else
             {
-                // курсор на рамке таблицы, покажем положение возможного разделителя
+                // если курсор на рамке таблицы, покажем положение возможного разделителя
                 if (drawMode == DrawMode.WaitLine && MouseInBorder(e.Location))
                 {
                     Cursor = Cursors.Cross;
@@ -95,17 +106,20 @@ namespace GridTableBuilder
                     {
                         splitLine.First = new Point(e.Location.X, tableRect.Y);
                         splitLine.Last = Point.Add(splitLine.First, new Size(0, tableRect.Height));
+                        splitKind = SplitKind.Vertical;
                     }
                     else if (Math.Abs(tableRect.X - e.Location.X) <= epsilon ||
                              Math.Abs(tableRect.X + tableRect.Width - e.Location.X) <= epsilon) // check left or right line
                     {
                         splitLine.First = new Point(tableRect.X, e.Location.Y);
                         splitLine.Last = Point.Add(splitLine.First, new Size(tableRect.Width, 0));
+                        splitKind = SplitKind.Horizontal;
                     }
                 }
                 else
                 {
                     splitLine.IsEmpty = true;
+                    splitKind = SplitKind.None;
                     Cursor = Cursors.Default;
                 }
                 Invalidate();
@@ -132,6 +146,24 @@ namespace GridTableBuilder
                 {
                     case DrawMode.WaitLine:
                         firstPoint = lastPoint = e.Location;
+                        // добавим данные разделителя в списки вертикальных и горизонтальных смещений
+                        if (!splitLine.IsEmpty)
+                        {
+                            int offset;
+                            switch (splitKind)
+                            {
+                                case SplitKind.Vertical:
+                                    offset = splitLine.First.X - tableRect.Location.X;
+                                    if (!hOffsets.Contains(offset))
+                                        hOffsets.Add(offset);
+                                    break;
+                                case SplitKind.Horizontal:
+                                    offset = splitLine.First.Y - tableRect.Location.Y;
+                                    if (!vOffsets.Contains(offset))
+                                        vOffsets.Add(offset);
+                                    break;
+                            }
+                        }
                         break;
                     case DrawMode.WaitRect:
                         if (tableRect.IsEmpty)
@@ -163,7 +195,16 @@ namespace GridTableBuilder
             if (!tableRect.IsEmpty)
             {
                 using (var pen = new Pen(Color.Black, 1))
+                {
                     gr.DrawRectangle(pen, tableRect);
+                    var lp = tableRect.Location;
+                    // строим вертикальные разделители
+                    foreach (var offset in hOffsets)
+                        gr.DrawLine(pen, new Point(lp.X + offset, lp.Y), new Point(lp.X + offset, lp.Y + tableRect.Height));
+                    // строим горизонтальные разделители
+                    foreach (var offset in vOffsets)
+                        gr.DrawLine(pen, new Point(lp.X, lp.Y + offset), new Point(lp.X + tableRect.Width, lp.Y + offset));
+                }
             }
             if (!splitLine.IsEmpty)
             {
