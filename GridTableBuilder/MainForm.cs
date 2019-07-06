@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
+using System.Linq;
 
 namespace GridTableBuilder
 {
@@ -277,11 +278,14 @@ namespace GridTableBuilder
                         if (!splitLine.IsEmpty)
                         {
                             int offset;
+                            List<int> list;
                             switch (splitKind)
                             {
                                 case SplitKind.Vertical:
                                     offset = splitLine.First.X - tableRect.Location.X;
-                                    if (!hOffsets.Contains(offset))
+                                    list = new List<int>(hOffsets) { 0, tableRect.Width - 1 };
+                                    // защита зоны при добавлении
+                                    if (!list.Any(item => Math.Abs(item - offset) < epsilon * 2))
                                     {
                                         hOffsets.Add(offset);
                                         hOffsets.Sort();
@@ -289,7 +293,9 @@ namespace GridTableBuilder
                                     break;
                                 case SplitKind.Horizontal:
                                     offset = splitLine.First.Y - tableRect.Location.Y;
-                                    if (!vOffsets.Contains(offset))
+                                    list = new List<int>(vOffsets) { 0, tableRect.Height - 1 };
+                                    // защита зоны при добавлении
+                                    if (!list.Any(item => Math.Abs(item - offset) < epsilon * 2))
                                     {
                                         vOffsets.Add(offset);
                                         vOffsets.Sort();
@@ -361,6 +367,7 @@ namespace GridTableBuilder
             {
                 using (var pen = new Pen(Color.Black, 1))
                 {
+                    pen.DashStyle = DashStyle.Dot;
                     gr.DrawRectangle(pen, tableRect);
                     var lp = tableRect.Location;
                     // строим вертикальные разделители
