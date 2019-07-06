@@ -49,6 +49,19 @@ namespace GridTableBuilder
             }
         }
 
+        class Edge
+        {
+            public PointNode First { get; set; } = new PointNode();
+            public PointNode Last { get; set; } = new PointNode();
+
+        }
+
+        class PointNode
+        {
+            public Point Offset { get; set; }
+            public List<Edge> Edges { get; set; } = new List<Edge>();
+        }
+
         bool down;
         Point firstPoint;
         Point lastPoint;
@@ -63,6 +76,8 @@ namespace GridTableBuilder
         List<int> hOffsets = new List<int>();
         int splitOffset;
         int splitOffsetIndex = -1;
+        List<PointNode> pointNodes = new List<PointNode>();
+        List<Edge> edges = new List<Edge>();
 
         public MainForm()
         {
@@ -289,6 +304,7 @@ namespace GridTableBuilder
                                     {
                                         hOffsets.Add(offset);
                                         hOffsets.Sort();
+                                        BuildPointNodes();
                                     }
                                     break;
                                 case SplitKind.Horizontal:
@@ -299,6 +315,7 @@ namespace GridTableBuilder
                                     {
                                         vOffsets.Add(offset);
                                         vOffsets.Sort();
+                                        BuildPointNodes();
                                     }
                                     break;
                             }
@@ -308,6 +325,7 @@ namespace GridTableBuilder
                         if (tableRect.IsEmpty)
                         {
                             tableRect = selRect;
+                            BuildPointNodes();
                             selRect = Rectangle.Empty;
                             drawMode = DrawMode.WaitLine;
                             firstPoint = lastPoint = Point.Empty;
@@ -325,11 +343,13 @@ namespace GridTableBuilder
                                 splitOffsetIndex >= 0 && splitOffsetIndex < hOffsets.Count)
                             {
                                 hOffsets[splitOffsetIndex] = splitLine.First.X - tableRect.X;
+                                BuildPointNodes();
                             }
                             else if (splitKind == SplitKind.Horizontal &&
                                 splitOffsetIndex >= 0 && splitOffsetIndex < vOffsets.Count)
                             {
                                 vOffsets[splitOffsetIndex] = splitLine.First.Y - tableRect.Y;
+                                BuildPointNodes();
                             }
                             splitLine = Line.Empty;
                         }
@@ -350,13 +370,35 @@ namespace GridTableBuilder
                 {
                     var offset = e.Location.X - tableRect.X;
                     hOffsets.RemoveAll(item => Math.Abs(item - offset) <= epsilon);
+                    BuildPointNodes();
                 }
                 else if (MouseInHSplit(e.Location))
                 {
                     var offset = e.Location.Y - tableRect.Y;
                     vOffsets.RemoveAll(item => Math.Abs(item - offset) <= epsilon);
+                    BuildPointNodes();
                 }
                 Invalidate();
+            }
+        }
+
+        private void BuildPointNodes()
+        {
+            pointNodes.Clear();
+            // добавление основных узловых точек на границах фигуры
+            pointNodes.Add(new PointNode() { Offset = new Point(0, 0) });
+            pointNodes.Add(new PointNode() { Offset = new Point(tableRect.Width, 0) });
+            pointNodes.Add(new PointNode() { Offset = new Point(tableRect.Width, tableRect.Height) });
+            pointNodes.Add(new PointNode() { Offset = new Point(0, tableRect.Height) });
+            foreach (var ho in hOffsets)
+            {
+                pointNodes.Add(new PointNode() { Offset = new Point(ho, 0) });
+                pointNodes.Add(new PointNode() { Offset = new Point(ho, tableRect.Height) });
+            }
+            foreach (var vo in vOffsets)
+            {
+                pointNodes.Add(new PointNode() { Offset = new Point(0, vo) });
+                pointNodes.Add(new PointNode() { Offset = new Point(tableRect.Width, vo) });
             }
         }
 
@@ -376,6 +418,15 @@ namespace GridTableBuilder
                     // строим горизонтальные разделители
                     foreach (var offset in vOffsets)
                         gr.DrawLine(pen, new Point(lp.X, lp.Y + offset), new Point(lp.X + tableRect.Width, lp.Y + offset));
+                }
+                // рисуем узловые точки
+                foreach (var np in pointNodes)
+                {
+                    var lp = tableRect.Location;
+                    lp.Offset(np.Offset);
+                    var rect = new Rectangle(lp, new Size(8, 8));
+                    rect.Offset(-4, -4);
+                    gr.FillEllipse(Brushes.Gray, rect);
                 }
             }
             if (!splitLine.IsEmpty) // рисуем возможное положение разделителя
