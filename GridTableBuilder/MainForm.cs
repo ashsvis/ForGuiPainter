@@ -48,6 +48,7 @@ namespace GridTableBuilder
         SplitKind splitKind;
         List<int> vOffsets = new List<int>();
         List<int> hOffsets = new List<int>();
+        int splitOffset;
 
         public MainForm()
         {
@@ -116,14 +117,65 @@ namespace GridTableBuilder
                         splitKind = SplitKind.Horizontal;
                     }
                 }
+                else if (drawMode == DrawMode.WaitLine && MouseInVSplit(e.Location))
+                {
+                    Cursor = Cursors.VSplit;
+                    splitKind = SplitKind.Vertical;
+                    splitOffset = e.Location.X;
+                }
+                else if (drawMode == DrawMode.WaitLine && MouseInHSplit(e.Location))
+                {
+                    Cursor = Cursors.HSplit;
+                    splitKind = SplitKind.Horizontal;
+                    splitOffset = e.Location.Y;
+                }
                 else
                 {
                     splitLine.IsEmpty = true;
                     splitKind = SplitKind.None;
+                    splitOffset = 0;
                     Cursor = Cursors.Default;
                 }
                 Invalidate();
             }
+        }
+
+        private bool MouseInVSplit(Point location, float width = epsilon)
+        {
+            if (tableRect.IsEmpty) return false;
+            if (hOffsets.Count == 0) return false;
+            using (var grp = new GraphicsPath())
+            using (var pen = new Pen(Color.Black, width))
+            {
+                var lp = tableRect.Location;
+                foreach (var offset in hOffsets)
+                {
+                    grp.Reset();
+                    grp.AddLine(new Point(lp.X + offset, lp.Y), new Point(lp.X + offset, lp.Y + tableRect.Height));
+                    if (grp.IsOutlineVisible(location, pen))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        private bool MouseInHSplit(Point location, float width = epsilon)
+        {
+            if (tableRect.IsEmpty) return false;
+            if (vOffsets.Count == 0) return false;
+            using (var grp = new GraphicsPath())
+            using (var pen = new Pen(Color.Black, width))
+            {
+                var lp = tableRect.Location;
+                foreach (var offset in vOffsets)
+                {
+                    grp.Reset();
+                    grp.AddLine(new Point(lp.X, lp.Y + offset), new Point(lp.X + tableRect.Width, lp.Y + offset));
+                    if (grp.IsOutlineVisible(location, pen))
+                        return true;
+                }
+            }
+            return false;
         }
 
         private bool MouseInBorder(Point location, float width = epsilon)
@@ -155,12 +207,18 @@ namespace GridTableBuilder
                                 case SplitKind.Vertical:
                                     offset = splitLine.First.X - tableRect.Location.X;
                                     if (!hOffsets.Contains(offset))
+                                    {
                                         hOffsets.Add(offset);
+                                        hOffsets.Sort();
+                                    }
                                     break;
                                 case SplitKind.Horizontal:
                                     offset = splitLine.First.Y - tableRect.Location.Y;
                                     if (!vOffsets.Contains(offset))
+                                    {
                                         vOffsets.Add(offset);
+                                        vOffsets.Sort();
+                                    }
                                     break;
                             }
                         }
@@ -187,6 +245,21 @@ namespace GridTableBuilder
                 }
                 Invalidate();
             }
+            else if (e.Button == MouseButtons.Right && drawMode == DrawMode.WaitLine)
+            {
+                // удаление разделителей под курсором
+                if (MouseInVSplit(e.Location))
+                {
+                    var offset = e.Location.X - tableRect.X;
+                    hOffsets.RemoveAll(item => Math.Abs(item - offset) <= epsilon);
+                }
+                else if (MouseInHSplit(e.Location))
+                {
+                    var offset = e.Location.Y - tableRect.Y;
+                    vOffsets.RemoveAll(item => Math.Abs(item - offset) <= epsilon);
+                }
+                Invalidate();
+            }
         }
 
         private void MainForm_Paint(object sender, PaintEventArgs e)
@@ -206,7 +279,7 @@ namespace GridTableBuilder
                         gr.DrawLine(pen, new Point(lp.X, lp.Y + offset), new Point(lp.X + tableRect.Width, lp.Y + offset));
                 }
             }
-            if (!splitLine.IsEmpty)
+            if (!splitLine.IsEmpty) // рисуем возможное положение разделителя
             {
                 using (var pen = new Pen(Color.Magenta, 1))
                 {
