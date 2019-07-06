@@ -29,11 +29,9 @@ namespace GridTableBuilder
             public Point First { get; set; }
             public Point Last { get; set; }
 
-            public bool IsEmpty
-            {
-                get { return First.IsEmpty && Last.IsEmpty; }
-                set { First = Last = Point.Empty; }
-            }
+            public bool IsEmpty { get { return First.IsEmpty && Last.IsEmpty; } }
+
+            public static Line Empty { get { return new Line(); } }
 
             public Line Offset(int dx, int dy)
             {
@@ -106,7 +104,7 @@ namespace GridTableBuilder
                     }
                     else
                     {
-                        splitLine.IsEmpty = true;
+                        splitLine = Line.Empty;
                         splitKind = SplitKind.None;
                         splitOffsetIndex = -1;
                     }
@@ -136,28 +134,32 @@ namespace GridTableBuilder
                             if (splitKind == SplitKind.Vertical)
                             {
                                 var dx = e.X - dragPoint.X;
-                                if (splitOffsetIndex >= 0 && splitOffsetIndex < hOffsets.Count)
+                                // защита зоны
+                                if (dx != 0 && splitOffsetIndex >= 0 && splitOffsetIndex < hOffsets.Count)
                                 {
                                     var low = splitOffsetIndex > 0 
                                         ? tableRect.X + hOffsets[splitOffsetIndex - 1] : tableRect.X;
                                     var high = splitOffsetIndex < hOffsets.Count - 1
                                         ? tableRect.X + hOffsets[splitOffsetIndex + 1] : tableRect.X + tableRect.Width;
                                     var x = splitLine.Offset(dx, 0).First.X;
-                                    if (x <= low || x >= high) dx = 0;
+                                    if (x < low + epsilon * 2 || x > high - epsilon * 2)
+                                        dx = 0;
                                 }
                                 splitLine = splitLine.Offset(dx, 0);
                             }
                             else if (splitKind == SplitKind.Horizontal) // перемещение горизонтального разделителя
                             {
                                 var dy = e.Y - dragPoint.Y;
-                                if (splitOffsetIndex >= 0 && splitOffsetIndex < vOffsets.Count)
+                                // защита зоны
+                                if (dy != 0 && splitOffsetIndex >= 0 && splitOffsetIndex < vOffsets.Count)
                                 {
                                     var low = splitOffsetIndex > 0
                                         ? tableRect.Y + vOffsets[splitOffsetIndex - 1] : tableRect.Y;
                                     var high = splitOffsetIndex < vOffsets.Count - 1
                                         ? tableRect.Y + vOffsets[splitOffsetIndex + 1] : tableRect.Y + tableRect.Height;
-                                    var y = splitLine.Offset(dy, 0).First.Y;
-                                    if (y <= low || y >= high) dy = 0;
+                                    var y = splitLine.Offset(0, dy).First.Y;
+                                    if (y < low + epsilon * 2 || y > high - epsilon * 2)
+                                        dy = 0;
                                 }
                                 splitLine = splitLine.Offset(0, dy);
                             }
@@ -204,7 +206,7 @@ namespace GridTableBuilder
                 }
                 else
                 {
-                    splitLine.IsEmpty = true;
+                    splitLine = Line.Empty;
                     splitKind = SplitKind.None;
                     splitOffset = 0;
                     Cursor = Cursors.Default;
@@ -311,8 +313,25 @@ namespace GridTableBuilder
                         }
                         break;
                     case DrawMode.Drag:
-                        tableRect.Location = selRect.Location;
-                        selRect = Rectangle.Empty;
+                        if (!splitLine.IsEmpty)
+                        {
+                            if (splitKind == SplitKind.Vertical &&
+                                splitOffsetIndex >= 0 && splitOffsetIndex < hOffsets.Count)
+                            {
+                                hOffsets[splitOffsetIndex] = splitLine.First.X - tableRect.X;
+                            }
+                            else if (splitKind == SplitKind.Horizontal &&
+                                splitOffsetIndex >= 0 && splitOffsetIndex < vOffsets.Count)
+                            {
+                                vOffsets[splitOffsetIndex] = splitLine.First.Y - tableRect.Y;
+                            }
+                            splitLine = Line.Empty;
+                        }
+                        else
+                        {
+                            tableRect.Location = selRect.Location;
+                            selRect = Rectangle.Empty;
+                        }
                         drawMode = DrawMode.WaitLine;
                         break;
                 }
