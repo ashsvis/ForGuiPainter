@@ -34,6 +34,20 @@ namespace GridTableBuilder
                 get { return First.IsEmpty && Last.IsEmpty; }
                 set { First = Last = Point.Empty; }
             }
+
+            public Line Offset(int dx, int dy)
+            {
+                return new Line
+                {
+                    First = new Point(First.X + dx, First.Y + dy),
+                    Last = new Point(Last.X + dx, Last.Y + dy)
+                };
+            }
+
+            public override string ToString()
+            {
+                return $"{First} {Last}";
+            }
         }
 
         bool down;
@@ -49,6 +63,7 @@ namespace GridTableBuilder
         List<int> vOffsets = new List<int>();
         List<int> hOffsets = new List<int>();
         int splitOffset;
+        int splitOffsetIndex = -1;
 
         public MainForm()
         {
@@ -68,6 +83,34 @@ namespace GridTableBuilder
                 drawMode = drag ? DrawMode.Drag : tableRect.IsEmpty ? DrawMode.WaitRect : DrawMode.WaitLine;
                 selRect.Location = drag ? tableRect.Location : e.Location;
                 selRect.Size = drag ? tableRect.Size : Size.Empty;
+
+                if (drag)
+                {
+                    if (MouseInVSplit(e.Location))
+                    {
+                        var offset = hOffsets.Find(item => Math.Abs(item - (e.Location.X - tableRect.X)) <= epsilon);
+                        splitOffsetIndex = hOffsets.IndexOf(offset);
+                        var lp = tableRect.Location;
+                        splitLine.First = new Point(lp.X + offset, lp.Y);
+                        splitLine.Last = new Point(lp.X + offset, lp.Y + tableRect.Height);
+                        splitKind = SplitKind.Vertical;
+                    }
+                    else if (MouseInHSplit(e.Location))
+                    {
+                        var offset = vOffsets.Find(item => Math.Abs(item - (e.Location.Y - tableRect.Y)) <= epsilon);
+                        splitOffsetIndex = vOffsets.IndexOf(offset);
+                        var lp = tableRect.Location;
+                        splitLine.First = new Point(lp.X, lp.Y + offset);
+                        splitLine.Last = new Point(lp.X + tableRect.Width, lp.Y + offset);
+                        splitKind = SplitKind.Horizontal;
+                    }
+                    else
+                    {
+                        splitLine.IsEmpty = true;
+                        splitKind = SplitKind.None;
+                        splitOffsetIndex = -1;
+                    }
+                }
                 Invalidate();
             }
         }
@@ -78,9 +121,6 @@ namespace GridTableBuilder
             {
                 switch (drawMode)
                 {
-                    //case DrawMode.WaitLine:
-                    //    lastPoint = e.Location;
-                    //    break;
                     case DrawMode.WaitRect:
                         var width = Math.Abs(firstPoint.X - e.X);
                         var heigth = Math.Abs(firstPoint.Y - e.Y);
@@ -90,7 +130,40 @@ namespace GridTableBuilder
                         selRect = new Rectangle(location, new Size(width, heigth));
                         break;
                     case DrawMode.Drag:
-                        selRect.Offset(e.X - dragPoint.X, e.Y - dragPoint.Y);
+                        if (!splitLine.IsEmpty)
+                        {
+                            // перемещение вертикального разделителя
+                            if (splitKind == SplitKind.Vertical)
+                            {
+                                var dx = e.X - dragPoint.X;
+                                if (splitOffsetIndex >= 0 && splitOffsetIndex < hOffsets.Count)
+                                {
+                                    var low = splitOffsetIndex > 0 
+                                        ? tableRect.X + hOffsets[splitOffsetIndex - 1] : tableRect.X;
+                                    var high = splitOffsetIndex < hOffsets.Count - 1
+                                        ? tableRect.X + hOffsets[splitOffsetIndex + 1] : tableRect.X + tableRect.Width;
+                                    var x = splitLine.Offset(dx, 0).First.X;
+                                    if (x <= low || x >= high) dx = 0;
+                                }
+                                splitLine = splitLine.Offset(dx, 0);
+                            }
+                            else if (splitKind == SplitKind.Horizontal) // перемещение горизонтального разделителя
+                            {
+                                var dy = e.Y - dragPoint.Y;
+                                if (splitOffsetIndex >= 0 && splitOffsetIndex < vOffsets.Count)
+                                {
+                                    var low = splitOffsetIndex > 0
+                                        ? tableRect.Y + vOffsets[splitOffsetIndex - 1] : tableRect.Y;
+                                    var high = splitOffsetIndex < vOffsets.Count - 1
+                                        ? tableRect.Y + vOffsets[splitOffsetIndex + 1] : tableRect.Y + tableRect.Height;
+                                    var y = splitLine.Offset(dy, 0).First.Y;
+                                    if (y <= low || y >= high) dy = 0;
+                                }
+                                splitLine = splitLine.Offset(0, dy);
+                            }
+                        }
+                        else
+                            selRect.Offset(e.X - dragPoint.X, e.Y - dragPoint.Y);
                         dragPoint = e.Location;
                         break;
                 }
@@ -297,10 +370,18 @@ namespace GridTableBuilder
                         break;
                     case DrawMode.WaitRect:
                     case DrawMode.Drag:
-                        gr.DrawRectangle(pen, selRect);
+                        if (!splitLine.IsEmpty)
+                            gr.DrawLine(pen, splitLine.First, splitLine.Last);
+                        else
+                            gr.DrawRectangle(pen, selRect);
                         break;
                 }
             }
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            Text = drawMode.ToString();
         }
     }
 }
