@@ -135,6 +135,11 @@ namespace GridTableBuilder
             {
                 switch (drawMode)
                 {
+                    case DrawMode.WaitLine:
+                        // рисуем линию, только если внутри области
+                        if (table.Contains(firstPoint))
+                            lastPoint = e.Location;
+                        break;
                     case DrawMode.WaitRect:
                         var width = Math.Abs(firstPoint.X - e.X);
                         var heigth = Math.Abs(firstPoint.Y - e.Y);
@@ -145,43 +150,9 @@ namespace GridTableBuilder
                         break;
                     case DrawMode.Drag:
                         if (!splitLine.IsEmpty)
-                        {
-                            // перемещение вертикального разделителя
-                            if (splitKind == SplitKind.Vertical)
-                            {
-                                var dx = e.X - dragPoint.X;
-                                // защита зоны
-                                if (dx != 0 && splitOffsetIndex >= 0 && splitOffsetIndex < horizontals.Count)
-                                {
-                                    var low = splitOffsetIndex > 0 
-                                        ? table.X + horizontals[splitOffsetIndex - 1] : table.X;
-                                    var high = splitOffsetIndex < horizontals.Count - 1
-                                        ? table.X + horizontals[splitOffsetIndex + 1] : table.X + table.Width;
-                                    var x = splitLine.Offset(dx, 0).First.X;
-                                    if (x < low + epsilon * 2 || x > high - epsilon * 2)
-                                        dx = 0;
-                                }
-                                splitLine = splitLine.Offset(dx, 0);
-                            }
-                            else if (splitKind == SplitKind.Horizontal) // перемещение горизонтального разделителя
-                            {
-                                var dy = e.Y - dragPoint.Y;
-                                // защита зоны
-                                if (dy != 0 && splitOffsetIndex >= 0 && splitOffsetIndex < verticals.Count)
-                                {
-                                    var low = splitOffsetIndex > 0
-                                        ? table.Y + verticals[splitOffsetIndex - 1] : table.Y;
-                                    var high = splitOffsetIndex < verticals.Count - 1
-                                        ? table.Y + verticals[splitOffsetIndex + 1] : table.Y + table.Height;
-                                    var y = splitLine.Offset(0, dy).First.Y;
-                                    if (y < low + epsilon * 2 || y > high - epsilon * 2)
-                                        dy = 0;
-                                }
-                                splitLine = splitLine.Offset(0, dy);
-                            }
-                        }
-                        else
-                            selRect.Offset(e.X - dragPoint.X, e.Y - dragPoint.Y);
+                            ShowMovedSplitter(e);
+                        //else
+                        //    selRect.Offset(e.X - dragPoint.X, e.Y - dragPoint.Y);
                         dragPoint = e.Location;
                         break;
                 }
@@ -189,26 +160,29 @@ namespace GridTableBuilder
             }
             else
             {
+                // пока исключено
+                //
                 // если курсор на рамке таблицы, покажем положение возможного разделителя
-                if (drawMode == DrawMode.WaitLine && MouseInBorder(e.Location))
-                {
-                    Cursor = Cursors.Cross;
-                    if (Math.Abs(table.Y - e.Location.Y) <= epsilon ||
-                        Math.Abs(table.Y + table.Height - e.Location.Y) <= epsilon) // check top or bottom line
-                    {
-                        splitLine.First = new Point(e.Location.X, table.Y);
-                        splitLine.Last = Point.Add(splitLine.First, new Size(0, table.Height));
-                        splitKind = SplitKind.Vertical;
-                    }
-                    else if (Math.Abs(table.X - e.Location.X) <= epsilon ||
-                             Math.Abs(table.X + table.Width - e.Location.X) <= epsilon) // check left or right line
-                    {
-                        splitLine.First = new Point(table.X, e.Location.Y);
-                        splitLine.Last = Point.Add(splitLine.First, new Size(table.Width, 0));
-                        splitKind = SplitKind.Horizontal;
-                    }
-                }
-                else if (drawMode == DrawMode.WaitLine && MouseInVSplit(e.Location))
+                //if (drawMode == DrawMode.WaitLine && MouseInBorder(e.Location))
+                //{
+                //    Cursor = Cursors.Cross;
+                //    if (Math.Abs(table.Y - e.Location.Y) <= epsilon ||
+                //        Math.Abs(table.Y + table.Height - e.Location.Y) <= epsilon) // check top or bottom line
+                //    {
+                //        splitLine.First = new Point(e.Location.X, table.Y);
+                //        splitLine.Last = Point.Add(splitLine.First, new Size(0, table.Height));
+                //        splitKind = SplitKind.Vertical;
+                //    }
+                //    else if (Math.Abs(table.X - e.Location.X) <= epsilon ||
+                //             Math.Abs(table.X + table.Width - e.Location.X) <= epsilon) // check left or right line
+                //    {
+                //        splitLine.First = new Point(table.X, e.Location.Y);
+                //        splitLine.Last = Point.Add(splitLine.First, new Size(table.Width, 0));
+                //        splitKind = SplitKind.Horizontal;
+                //    }
+                //}
+                //else 
+                if (drawMode == DrawMode.WaitLine && MouseInVSplit(e.Location))
                 {
                     Cursor = Cursors.VSplit;
                     splitKind = SplitKind.Vertical;
@@ -228,6 +202,43 @@ namespace GridTableBuilder
                     Cursor = Cursors.Default;
                 }
                 Invalidate();
+            }
+        }
+
+        private void ShowMovedSplitter(MouseEventArgs e)
+        {
+            // перемещение вертикального разделителя
+            if (splitKind == SplitKind.Vertical)
+            {
+                var dx = e.X - dragPoint.X;
+                // защита зоны
+                if (dx != 0 && splitOffsetIndex >= 0 && splitOffsetIndex < horizontals.Count)
+                {
+                    var low = splitOffsetIndex > 0
+                        ? table.X + horizontals[splitOffsetIndex - 1] : table.X;
+                    var high = splitOffsetIndex < horizontals.Count - 1
+                        ? table.X + horizontals[splitOffsetIndex + 1] : table.X + table.Width;
+                    var x = splitLine.Offset(dx, 0).First.X;
+                    if (x < low + epsilon * 2 || x > high - epsilon * 2)
+                        dx = 0;
+                }
+                splitLine = splitLine.Offset(dx, 0);
+            }
+            else if (splitKind == SplitKind.Horizontal) // перемещение горизонтального разделителя
+            {
+                var dy = e.Y - dragPoint.Y;
+                // защита зоны
+                if (dy != 0 && splitOffsetIndex >= 0 && splitOffsetIndex < verticals.Count)
+                {
+                    var low = splitOffsetIndex > 0
+                        ? table.Y + verticals[splitOffsetIndex - 1] : table.Y;
+                    var high = splitOffsetIndex < verticals.Count - 1
+                        ? table.Y + verticals[splitOffsetIndex + 1] : table.Y + table.Height;
+                    var y = splitLine.Offset(0, dy).First.Y;
+                    if (y < low + epsilon * 2 || y > high - epsilon * 2)
+                        dy = 0;
+                }
+                splitLine = splitLine.Offset(0, dy);
             }
         }
 
@@ -291,35 +302,7 @@ namespace GridTableBuilder
                         firstPoint = lastPoint = e.Location;
                         // добавим данные разделителя в списки вертикальных и горизонтальных смещений
                         if (!splitLine.IsEmpty)
-                        {
-                            int offset;
-                            List<int> list;
-                            switch (splitKind)
-                            {
-                                case SplitKind.Vertical:
-                                    offset = splitLine.First.X - table.Location.X;
-                                    list = new List<int>(horizontals) { 0, table.Width - 1 };
-                                    // защита зоны при добавлении
-                                    if (!list.Any(item => Math.Abs(item - offset) < epsilon * 2))
-                                    {
-                                        horizontals.Add(offset);
-                                        horizontals.Sort();
-                                        AddToHorizontalPointNodes(offset);
-                                    }
-                                    break;
-                                case SplitKind.Horizontal:
-                                    offset = splitLine.First.Y - table.Location.Y;
-                                    list = new List<int>(verticals) { 0, table.Height - 1 };
-                                    // защита зоны при добавлении
-                                    if (!list.Any(item => Math.Abs(item - offset) < epsilon * 2))
-                                    {
-                                        verticals.Add(offset);
-                                        verticals.Sort();
-                                        AddToVerticalPointNodes(offset);
-                                    }
-                                    break;
-                            }
-                        }
+                            AddNewSplitter();
                         break;
                     case DrawMode.WaitRect:
                         if (table.IsEmpty)
@@ -386,6 +369,37 @@ namespace GridTableBuilder
             }
         }
 
+        private void AddNewSplitter()
+        {
+            int offset;
+            List<int> list;
+            switch (splitKind)
+            {
+                case SplitKind.Vertical:
+                    offset = splitLine.First.X - table.Location.X;
+                    list = new List<int>(horizontals) { 0, table.Width - 1 };
+                    // защита зоны при добавлении
+                    if (!list.Any(item => Math.Abs(item - offset) < epsilon * 2))
+                    {
+                        horizontals.Add(offset);
+                        horizontals.Sort();
+                        AddToHorizontalPointNodes(offset);
+                    }
+                    break;
+                case SplitKind.Horizontal:
+                    offset = splitLine.First.Y - table.Location.Y;
+                    list = new List<int>(verticals) { 0, table.Height - 1 };
+                    // защита зоны при добавлении
+                    if (!list.Any(item => Math.Abs(item - offset) < epsilon * 2))
+                    {
+                        verticals.Add(offset);
+                        verticals.Sort();
+                        AddToVerticalPointNodes(offset);
+                    }
+                    break;
+            }
+        }
+
         private void MoveHorizontalPointNodes(int first, int last)
         {
             foreach (var pn in nodes)
@@ -428,16 +442,6 @@ namespace GridTableBuilder
             nodes.Add(new PointNode() { Offset = new Point(table.Width, 0) });
             nodes.Add(new PointNode() { Offset = new Point(table.Width, table.Height) });
             nodes.Add(new PointNode() { Offset = new Point(0, table.Height) });
-            //foreach (var ho in horizontals)
-            //{
-            //    pointNodes.Add(new PointNode() { Offset = new Point(ho, 0) });
-            //    pointNodes.Add(new PointNode() { Offset = new Point(ho, table.Height) });
-            //}
-            //foreach (var vo in verticals)
-            //{
-            //    pointNodes.Add(new PointNode() { Offset = new Point(0, vo) });
-            //    pointNodes.Add(new PointNode() { Offset = new Point(table.Width, vo) });
-            //}
         }
 
         private void MainForm_Paint(object sender, PaintEventArgs e)
@@ -492,11 +496,6 @@ namespace GridTableBuilder
                         break;
                 }
             }
-        }
-
-        private void timer1_Tick(object sender, EventArgs e)
-        {
-            Text = drawMode.ToString();
         }
     }
 }
