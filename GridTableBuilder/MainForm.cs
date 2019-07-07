@@ -11,6 +11,13 @@ namespace GridTableBuilder
     {
         const float epsilon = 3f;
 
+        enum WorkMode
+        {
+            Create,
+            Change,
+            Delete
+        }
+
         enum DrawMode
         {
             WaitRect,
@@ -53,7 +60,12 @@ namespace GridTableBuilder
         {
             public PointNode First { get; set; } = new PointNode();
             public PointNode Last { get; set; } = new PointNode();
+            public int Index { get; set; }
 
+            public override string ToString()
+            {
+                return $"Ребро {Index}";
+            }
         }
 
         class PointNode
@@ -62,12 +74,14 @@ namespace GridTableBuilder
             public List<Edge> Edges { get; set; } = new List<Edge>();
         }
 
+        WorkMode workMode = WorkMode.Create;
+        Rectangle table = new Rectangle(200, 50, 400, 300);
+
         bool down;
         Point firstPoint;
         Point lastPoint;
         Rectangle selRect;
         DrawMode drawMode;
-        Rectangle table;
         bool drag;
         Point dragPoint;
         Line splitLine;
@@ -83,10 +97,23 @@ namespace GridTableBuilder
         {
             InitializeComponent();
             DoubleBuffered = true;
+            BuildNodesAndEdges();
         }
 
         private void MainForm_MouseDown(object sender, MouseEventArgs e)
         {
+            if (workMode == WorkMode.Create)
+            {
+                if (e.Button == MouseButtons.Left)
+                {
+                    down = true;
+                    firstPoint = lastPoint = e.Location;
+                    splitLine = Line.Empty;
+                    Invalidate();
+                }
+            }
+            #region
+            /*
             if (e.Button == MouseButtons.Left)
             {
                 down = true;
@@ -127,10 +154,42 @@ namespace GridTableBuilder
                 }
                 Invalidate();
             }
+            */
+            #endregion
         }
 
         private void MainForm_MouseMove(object sender, MouseEventArgs e)
         {
+            if (workMode == WorkMode.Create)
+            {
+                if (down)
+                {
+                    // рисуем линию, только если внутри области
+                    if (table.Contains(firstPoint))
+                    {
+                        lastPoint = e.Location;
+
+                        var dx = Math.Abs(lastPoint.X - firstPoint.X);
+                        var dy = Math.Abs(lastPoint.Y - firstPoint.Y);
+                        // распознавание перпендикулярной линии
+                        if (dy > 0 && dx / dy > 5)
+                        {
+                            // это горизонталь
+                            lastPoint.Y = firstPoint.Y;
+                            splitLine = FindAmongHorizontalEdges(firstPoint.X, lastPoint.X, firstPoint.Y);
+                        }
+                        else if (dx > 0 && dy / dx > 5)
+                        {
+                            // это вертикаль
+                            lastPoint.X = firstPoint.X;
+                            splitLine = FindAmongVertivalEdges(firstPoint.X, firstPoint.Y, lastPoint.Y);
+                        }
+                    }
+                    Invalidate();
+                }
+            }
+            #region
+            /*
             if (down)
             {
                 switch (drawMode)
@@ -203,6 +262,228 @@ namespace GridTableBuilder
                 }
                 Invalidate();
             }
+            */
+            #endregion
+        }
+
+        private Line FindAmongVertivalEdges(int x, int y1, int y2)
+        {
+            var firstY = Math.Min(y1, y2);
+            var lastY = Math.Max(y1, y2);
+            var edgeA = edges.Where(edge => edge.First.Offset.X == edge.Last.Offset.X)
+                             .OrderBy(edge => Math.Abs(edge.First.Offset.Y - firstY)).ElementAt(0);
+            var edgeB = edges.Where(edge => edge.First.Offset.X == edge.Last.Offset.X)
+                             .OrderBy(edge => Math.Abs(edge.First.Offset.Y - lastY)).ElementAt(0);
+            if (edgeA != edgeB)
+            {
+                return new Line() { First = edgeB.First.Offset, Last = edgeB.Last.Offset };
+            }
+            return Line.Empty;
+        }
+
+        private Line FindAmongHorizontalEdges(int x1, int x2, int y)
+        {
+            var firstX = Math.Min(x1, x2);
+            var lastX = Math.Max(x1, x2);
+            var edgeA = edges.Where(edge => edge.First.Offset.Y == edge.Last.Offset.Y)
+                             .OrderBy(edge => Math.Abs(edge.First.Offset.X - firstX)).ElementAt(0);
+            var edgeB = edges.Where(edge => edge.First.Offset.Y == edge.Last.Offset.Y)
+                             .OrderBy(edge => Math.Abs(edge.First.Offset.X - lastX)).ElementAt(0);
+            if (edgeA != edgeB)
+            {
+                return new Line();
+            }
+            return Line.Empty;
+        }
+
+        private void MainForm_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (workMode == WorkMode.Create)
+            {
+                if (down)
+                {
+                    down = false;
+                    firstPoint = lastPoint = e.Location;
+                    Invalidate();
+                }
+            }
+            #region
+            /*
+            if (down)
+            {
+                down = false;
+                switch (drawMode)
+                {
+                    case DrawMode.WaitLine:
+                        firstPoint = lastPoint = e.Location;
+                        // добавим данные разделителя в списки вертикальных и горизонтальных смещений
+                        if (!splitLine.IsEmpty)
+                            AddNewSplitter();
+                        break;
+                    case DrawMode.WaitRect:
+                        if (table.IsEmpty)
+                        {
+                            table = selRect;
+                            BuildFirstPointNodes();
+                            selRect = Rectangle.Empty;
+                            drawMode = DrawMode.WaitLine;
+                            firstPoint = lastPoint = Point.Empty;
+                        }
+                        else
+                        {
+                            drawMode = DrawMode.WaitRect;
+                            selRect = table = Rectangle.Empty;
+                        }
+                        break;
+                    case DrawMode.Drag:
+                        if (!splitLine.IsEmpty)
+                        {
+                            if (splitKind == SplitKind.Vertical &&
+                                splitOffsetIndex >= 0 && splitOffsetIndex < horizontals.Count)
+                            {
+                                var offset = horizontals[splitOffsetIndex];
+                                horizontals[splitOffsetIndex] = splitLine.First.X - table.X;
+                                MoveHorizontalPointNodes(offset, horizontals[splitOffsetIndex]);
+                            }
+                            else if (splitKind == SplitKind.Horizontal &&
+                                splitOffsetIndex >= 0 && splitOffsetIndex < verticals.Count)
+                            {
+                                var offset = verticals[splitOffsetIndex];
+                                verticals[splitOffsetIndex] = splitLine.First.Y - table.Y;
+                                MoveVerticalPointNodes(offset, verticals[splitOffsetIndex]);
+                            }
+                            splitLine = Line.Empty;
+                        }
+                        else
+                        {
+                            table.Location = selRect.Location;
+                            selRect = Rectangle.Empty;
+                        }
+                        drawMode = DrawMode.WaitLine;
+                        break;
+                }
+                Invalidate();
+            }
+            else if (e.Button == MouseButtons.Right && drawMode == DrawMode.WaitLine)
+            {
+                // удаление разделителей под курсором
+                if (MouseInVSplit(e.Location))
+                {
+                    var offset = e.Location.X - table.X;
+                    var value = horizontals.FirstOrDefault(item => Math.Abs(item - offset) <= epsilon);
+                    horizontals.Remove(value);
+                    nodes.RemoveAll(item => item.Offset.X == value);
+                }
+                else if (MouseInHSplit(e.Location))
+                {
+                    var offset = e.Location.Y - table.Y;
+                    var value = verticals.FirstOrDefault(item => Math.Abs(item - offset) <= epsilon);
+                    verticals.Remove(value);
+                    nodes.RemoveAll(item => item.Offset.Y == value);
+                }
+                Invalidate();
+            }
+            */
+            #endregion
+        }
+
+        private void MainForm_Paint(object sender, PaintEventArgs e)
+        {
+            var gr = e.Graphics;
+            using (var pen = new Pen(Color.Gray, 1))
+            {
+                pen.DashStyle = DashStyle.Dash;
+                gr.DrawRectangle(pen, table);
+            }
+            // рисуем узловые точки
+            foreach (var np in nodes)
+            {
+                var lp = table.Location;
+                lp.Offset(np.Offset);
+                var rect = new Rectangle(lp, new Size(10, 10));
+                rect.Offset(-5, -5);
+                gr.FillEllipse(Brushes.Gray, rect);
+            }
+            // рисуем рёбра
+            foreach (var ed in edges)
+            {
+                var lp = table.Location;
+                using (var pen = new Pen(Color.Black, 2))
+                {
+                    var first = ed.First.Offset;
+                    first.Offset(lp);
+                    var last = ed.Last.Offset;
+                    last.Offset(lp);
+                    gr.DrawLine(pen, first, last);
+                }
+       
+            }
+            //
+            if (workMode == WorkMode.Create)
+            {
+                using (var pen = new Pen(Color.Magenta))
+                {
+                    pen.DashStyle = DashStyle.Dash;
+                    if (splitLine.IsEmpty)
+                        gr.DrawLine(pen, firstPoint, lastPoint);
+                    else
+                        gr.DrawLine(pen, splitLine.First, splitLine.Last);
+                }
+
+            }
+            #region
+            /*
+            if (!table.IsEmpty)
+            {
+                using (var pen = new Pen(Color.Black, 1))
+                {
+                    pen.DashStyle = DashStyle.Dot;
+                    gr.DrawRectangle(pen, table);
+                    var lp = table.Location;
+                    // строим вертикальные разделители
+                    foreach (var offset in horizontals)
+                        gr.DrawLine(pen, new Point(lp.X + offset, lp.Y), new Point(lp.X + offset, lp.Y + table.Height));
+                    // строим горизонтальные разделители
+                    foreach (var offset in verticals)
+                        gr.DrawLine(pen, new Point(lp.X, lp.Y + offset), new Point(lp.X + table.Width, lp.Y + offset));
+                }
+                // рисуем узловые точки
+                foreach (var np in nodes)
+                {
+                    var lp = table.Location;
+                    lp.Offset(np.Offset);
+                    var rect = new Rectangle(lp, new Size(8, 8));
+                    rect.Offset(-4, -4);
+                    gr.FillEllipse(Brushes.Gray, rect);
+                }
+            }
+            if (!splitLine.IsEmpty) // рисуем возможное положение разделителя
+            {
+                using (var pen = new Pen(Color.Magenta, 1))
+                {
+                    pen.DashStyle = DashStyle.Dash;
+                    gr.DrawLine(pen, splitLine.First, splitLine.Last);
+                }
+            }
+            using (var pen = new Pen(Color.Magenta))
+            {
+                pen.DashStyle = DashStyle.Dash;                     
+                switch (drawMode)
+                {
+                    case DrawMode.WaitLine:
+                        gr.DrawLine(pen, firstPoint, lastPoint);
+                        break;
+                    case DrawMode.WaitRect:
+                    case DrawMode.Drag:
+                        if (!splitLine.IsEmpty)
+                            gr.DrawLine(pen, splitLine.First, splitLine.Last);
+                        else
+                            gr.DrawRectangle(pen, selRect);
+                        break;
+                }
+            }
+            */
+            #endregion
         }
 
         private void ShowMovedSplitter(MouseEventArgs e)
@@ -291,84 +572,6 @@ namespace GridTableBuilder
             }
         }
 
-        private void MainForm_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (down)
-            {
-                down = false;
-                switch (drawMode)
-                {
-                    case DrawMode.WaitLine:
-                        firstPoint = lastPoint = e.Location;
-                        // добавим данные разделителя в списки вертикальных и горизонтальных смещений
-                        if (!splitLine.IsEmpty)
-                            AddNewSplitter();
-                        break;
-                    case DrawMode.WaitRect:
-                        if (table.IsEmpty)
-                        {
-                            table = selRect;
-                            BuildFirstPointNodes();
-                            selRect = Rectangle.Empty;
-                            drawMode = DrawMode.WaitLine;
-                            firstPoint = lastPoint = Point.Empty;
-                        }
-                        else
-                        {
-                            drawMode = DrawMode.WaitRect;
-                            selRect = table = Rectangle.Empty;
-                        }
-                        break;
-                    case DrawMode.Drag:
-                        if (!splitLine.IsEmpty)
-                        {
-                            if (splitKind == SplitKind.Vertical &&
-                                splitOffsetIndex >= 0 && splitOffsetIndex < horizontals.Count)
-                            {
-                                var offset = horizontals[splitOffsetIndex];
-                                horizontals[splitOffsetIndex] = splitLine.First.X - table.X;
-                                MoveHorizontalPointNodes(offset, horizontals[splitOffsetIndex]);
-                            }
-                            else if (splitKind == SplitKind.Horizontal &&
-                                splitOffsetIndex >= 0 && splitOffsetIndex < verticals.Count)
-                            {
-                                var offset = verticals[splitOffsetIndex];
-                                verticals[splitOffsetIndex] = splitLine.First.Y - table.Y;
-                                MoveVerticalPointNodes(offset, verticals[splitOffsetIndex]);
-                            }
-                            splitLine = Line.Empty;
-                        }
-                        else
-                        {
-                            table.Location = selRect.Location;
-                            selRect = Rectangle.Empty;
-                        }
-                        drawMode = DrawMode.WaitLine;
-                        break;
-                }
-                Invalidate();
-            }
-            else if (e.Button == MouseButtons.Right && drawMode == DrawMode.WaitLine)
-            {
-                // удаление разделителей под курсором
-                if (MouseInVSplit(e.Location))
-                {
-                    var offset = e.Location.X - table.X;
-                    var value = horizontals.FirstOrDefault(item => Math.Abs(item - offset) <= epsilon);
-                    horizontals.Remove(value);
-                    nodes.RemoveAll(item => item.Offset.X == value);
-                }
-                else if (MouseInHSplit(e.Location))
-                {
-                    var offset = e.Location.Y - table.Y;
-                    var value = verticals.FirstOrDefault(item => Math.Abs(item - offset) <= epsilon);
-                    verticals.Remove(value);
-                    nodes.RemoveAll(item => item.Offset.Y == value);
-                }
-                Invalidate();
-            }
-        }
-
         private void AddNewSplitter()
         {
             int offset;
@@ -434,7 +637,7 @@ namespace GridTableBuilder
                 nodes.Add(new PointNode() { Offset = new Point(ofs, offset) });
         }
 
-        private void BuildFirstPointNodes()
+        private void BuildNodesAndEdges()
         {
             nodes.Clear();
             // добавление основных узловых точек на границах фигуры
@@ -442,60 +645,29 @@ namespace GridTableBuilder
             nodes.Add(new PointNode() { Offset = new Point(table.Width, 0) });
             nodes.Add(new PointNode() { Offset = new Point(table.Width, table.Height) });
             nodes.Add(new PointNode() { Offset = new Point(0, table.Height) });
+            edges.Clear();
+            edges.Add(new Edge() { First = nodes[0], Last = nodes[1], Index = 0 });
+            edges.Add(new Edge() { First = nodes[1], Last = nodes[2], Index = 1 });
+            edges.Add(new Edge() { First = nodes[2], Last = nodes[3], Index = 2 });
+            edges.Add(new Edge() { First = nodes[3], Last = nodes[0], Index = 3 });
+            nodes[0].Edges.Add(edges[0]);
+            nodes[0].Edges.Add(edges[3]);
+            nodes[1].Edges.Add(edges[0]);
+            nodes[1].Edges.Add(edges[1]);
+            nodes[2].Edges.Add(edges[1]);
+            nodes[2].Edges.Add(edges[2]);
+            nodes[3].Edges.Add(edges[2]);
+            nodes[3].Edges.Add(edges[3]);
         }
 
-        private void MainForm_Paint(object sender, PaintEventArgs e)
+        private void rbCreate_CheckedChanged(object sender, EventArgs e)
         {
-            var gr = e.Graphics;
-            if (!table.IsEmpty)
-            {
-                using (var pen = new Pen(Color.Black, 1))
-                {
-                    pen.DashStyle = DashStyle.Dot;
-                    gr.DrawRectangle(pen, table);
-                    var lp = table.Location;
-                    // строим вертикальные разделители
-                    foreach (var offset in horizontals)
-                        gr.DrawLine(pen, new Point(lp.X + offset, lp.Y), new Point(lp.X + offset, lp.Y + table.Height));
-                    // строим горизонтальные разделители
-                    foreach (var offset in verticals)
-                        gr.DrawLine(pen, new Point(lp.X, lp.Y + offset), new Point(lp.X + table.Width, lp.Y + offset));
-                }
-                // рисуем узловые точки
-                foreach (var np in nodes)
-                {
-                    var lp = table.Location;
-                    lp.Offset(np.Offset);
-                    var rect = new Rectangle(lp, new Size(8, 8));
-                    rect.Offset(-4, -4);
-                    gr.FillEllipse(Brushes.Gray, rect);
-                }
-            }
-            if (!splitLine.IsEmpty) // рисуем возможное положение разделителя
-            {
-                using (var pen = new Pen(Color.Magenta, 1))
-                {
-                    pen.DashStyle = DashStyle.Dash;
-                    gr.DrawLine(pen, splitLine.First, splitLine.Last);
-                }
-            }
-            using (var pen = new Pen(Color.Magenta))
-            {
-                pen.DashStyle = DashStyle.Dash;                     
-                switch (drawMode)
-                {
-                    case DrawMode.WaitLine:
-                        gr.DrawLine(pen, firstPoint, lastPoint);
-                        break;
-                    case DrawMode.WaitRect:
-                    case DrawMode.Drag:
-                        if (!splitLine.IsEmpty)
-                            gr.DrawLine(pen, splitLine.First, splitLine.Last);
-                        else
-                            gr.DrawRectangle(pen, selRect);
-                        break;
-                }
-            }
+            if (rbCreate.Checked)
+                workMode = WorkMode.Create;
+            else if (rbMove.Checked)
+                workMode = WorkMode.Change;
+            else if (rbDelete.Checked)
+                workMode = WorkMode.Delete;
         }
     }
 }
