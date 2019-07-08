@@ -29,9 +29,9 @@
         private void InitializeComponent()
         {
             this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.rbCreate = new System.Windows.Forms.RadioButton();
-            this.rbMove = new System.Windows.Forms.RadioButton();
             this.rbDelete = new System.Windows.Forms.RadioButton();
+            this.rbMove = new System.Windows.Forms.RadioButton();
+            this.rbCreate = new System.Windows.Forms.RadioButton();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -47,18 +47,17 @@
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Режим";
             // 
-            // rbCreate
+            // rbDelete
             // 
-            this.rbCreate.AutoSize = true;
-            this.rbCreate.Checked = true;
-            this.rbCreate.Location = new System.Drawing.Point(9, 19);
-            this.rbCreate.Name = "rbCreate";
-            this.rbCreate.Size = new System.Drawing.Size(73, 17);
-            this.rbCreate.TabIndex = 0;
-            this.rbCreate.TabStop = true;
-            this.rbCreate.Text = "Рисовать";
-            this.rbCreate.UseVisualStyleBackColor = true;
-            this.rbCreate.CheckedChanged += new System.EventHandler(this.rbCreate_CheckedChanged);
+            this.rbDelete.AutoSize = true;
+            this.rbDelete.Location = new System.Drawing.Point(9, 65);
+            this.rbDelete.Name = "rbDelete";
+            this.rbDelete.Size = new System.Drawing.Size(68, 17);
+            this.rbDelete.TabIndex = 2;
+            this.rbDelete.TabStop = true;
+            this.rbDelete.Text = "Удалять";
+            this.rbDelete.UseVisualStyleBackColor = true;
+            this.rbDelete.CheckedChanged += new System.EventHandler(this.rbCreate_CheckedChanged);
             // 
             // rbMove
             // 
@@ -73,18 +72,18 @@
             this.rbMove.UseVisualStyleBackColor = true;
             this.rbMove.CheckedChanged += new System.EventHandler(this.rbCreate_CheckedChanged);
             // 
-            // rbDelete
+            // rbCreate
             // 
-            this.rbDelete.AutoSize = true;
-            this.rbDelete.Enabled = false;
-            this.rbDelete.Location = new System.Drawing.Point(9, 65);
-            this.rbDelete.Name = "rbDelete";
-            this.rbDelete.Size = new System.Drawing.Size(68, 17);
-            this.rbDelete.TabIndex = 2;
-            this.rbDelete.TabStop = true;
-            this.rbDelete.Text = "Удалять";
-            this.rbDelete.UseVisualStyleBackColor = true;
-            this.rbDelete.CheckedChanged += new System.EventHandler(this.rbCreate_CheckedChanged);
+            this.rbCreate.AutoSize = true;
+            this.rbCreate.Checked = true;
+            this.rbCreate.Location = new System.Drawing.Point(9, 19);
+            this.rbCreate.Name = "rbCreate";
+            this.rbCreate.Size = new System.Drawing.Size(73, 17);
+            this.rbCreate.TabIndex = 0;
+            this.rbCreate.TabStop = true;
+            this.rbCreate.Text = "Рисовать";
+            this.rbCreate.UseVisualStyleBackColor = true;
+            this.rbCreate.CheckedChanged += new System.EventHandler(this.rbCreate_CheckedChanged);
             // 
             // MainForm
             // 
