@@ -389,6 +389,9 @@ namespace GridTableBuilder
             FillTreeView();
         }
 
+        /// <summary>
+        /// Удаление проходных узловых точек
+        /// </summary>
         private void RemoveIsAnadromousNodes()
         {
             var list = new List<PointNode>();
@@ -403,7 +406,21 @@ namespace GridTableBuilder
             {
                 if (pn.IsAnadromous)
                 {
-
+                    if (pn.Edges.Count == 2)
+                    {
+                        var ed1 = pn.Edges[0];
+                        var ed2 = pn.Edges[1];
+                        var pn1 = ed1.First;
+                        var pn2 = ed2.Last;
+                        pn1.Edges.Remove(ed1);
+                        pn2.Edges.Remove(ed2);
+                        edges.Remove(ed1);
+                        edges.Remove(ed2);
+                        var edge = new Edge(pn1, pn2) { Index = edgeCount++ };
+                        edges.Add(edge);
+                        pn1.Edges.Add(edge);
+                        pn2.Edges.Add(edge);
+                    }
                 }
                 nodes.Remove(pn);
             }
