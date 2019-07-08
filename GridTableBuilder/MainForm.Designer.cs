@@ -32,6 +32,7 @@
             this.rbDelete = new System.Windows.Forms.RadioButton();
             this.rbMove = new System.Windows.Forms.RadioButton();
             this.rbCreate = new System.Windows.Forms.RadioButton();
+            this.treeView1 = new System.Windows.Forms.TreeView();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -85,11 +86,21 @@
             this.rbCreate.UseVisualStyleBackColor = true;
             this.rbCreate.CheckedChanged += new System.EventHandler(this.rbCreate_CheckedChanged);
             // 
+            // treeView1
+            // 
+            this.treeView1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left)));
+            this.treeView1.Location = new System.Drawing.Point(15, 110);
+            this.treeView1.Name = "treeView1";
+            this.treeView1.Size = new System.Drawing.Size(121, 328);
+            this.treeView1.TabIndex = 1;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.treeView1);
             this.Controls.Add(this.groupBox1);
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
@@ -110,6 +121,7 @@
         private System.Windows.Forms.RadioButton rbDelete;
         private System.Windows.Forms.RadioButton rbMove;
         private System.Windows.Forms.RadioButton rbCreate;
+        private System.Windows.Forms.TreeView treeView1;
     }
 }
 

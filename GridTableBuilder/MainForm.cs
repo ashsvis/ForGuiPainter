@@ -58,8 +58,10 @@ namespace GridTableBuilder
 
         class Edge
         {
-            public PointNode First { get; set; } = new PointNode(Point.Empty);
-            public PointNode Last { get; set; } = new PointNode(Point.Empty);
+            public PointNode First { get; set; }
+            public PointNode Last { get; set; }
+
+            public int Index { get; set; } 
 
             public Edge(PointNode p1, PointNode p2)
             {
@@ -115,6 +117,8 @@ namespace GridTableBuilder
             public Point Offset { get; set; }
             public List<Edge> Edges { get; set; } = new List<Edge>();
 
+            public int Index { get; set; }
+
             public PointNode(Point offset)
             {
                 Offset = offset;
@@ -155,6 +159,9 @@ namespace GridTableBuilder
         List<int> horizontals = new List<int>();
         List<PointNode> nodes = new List<PointNode>();
         List<Edge> edges = new List<Edge>();
+
+        int pointCount = 0;
+        int edgeCount = 0;
 
         public MainForm()
         {
@@ -335,16 +342,18 @@ namespace GridTableBuilder
                         if (!nodes.Any(pn => pn.Offset.X == pn1.Offset.X && pn.Offset.Y == pn1.Offset.Y) &&
                             !nodes.Any(pn => pn.Offset.X == pn2.Offset.X && pn.Offset.Y == pn2.Offset.Y))
                         {
+                            pn1.Index = pointCount++;
                             nodes.Add(pn1);
                             // разбиваем ребро на два при добавлении узла
                             SplitEdge(pn1);
 
+                            pn2.Index = pointCount++;
                             nodes.Add(pn2);
                             // разбиваем ребро на два при добавлении узла
                             SplitEdge(pn2);
 
                             // добавляем новое ребро
-                            var edge = new Edge(pn1, pn2);
+                            var edge = new Edge(pn1, pn2) { Index = edgeCount++ };
                             pn1.Edges.Add(edge);
                             pn2.Edges.Add(edge);
                             // добавляем новые узлы в местах пересечения новым ребром
@@ -376,6 +385,8 @@ namespace GridTableBuilder
                     Invalidate();
                 }
             }
+            Text = $"Nodes: {nodes.Count}, Edges: {edges.Count}";
+            FillTreeView();
         }
 
         private void RemoveIsAnadromousNodes()
@@ -425,6 +436,7 @@ namespace GridTableBuilder
             // которое, возможно, будем делить
             foreach (var pn in points)
             {
+                pn.Index = pointCount++;
                 nodes.Add(pn);
                 SplitEdge(pn);
             }
@@ -443,17 +455,17 @@ namespace GridTableBuilder
             foreach (var edge in verticals.Union(horizontals))
             {
                 // добавляем новые рёбра
-                var edg1 = new Edge(edge.First, pn);
+                var edg1 = new Edge(edge.First, pn) { Index = edgeCount++ };
                 edges.Add(edg1);
                 pn.Edges.Add(edg1);
-                var edg2 = new Edge(pn, edge.Last);
+                var edg2 = new Edge(pn, edge.Last) { Index = edgeCount++ };
                 edges.Add(edg2);
                 pn.Edges.Add(edg2);
                 // удаляем старое ребро
                 edge.First.Edges.Remove(edge);
                 edge.First.Edges.Add(edg1);
                 edge.Last.Edges.Remove(edge);
-                edge.Last.Edges.Add(edg1);
+                edge.Last.Edges.Add(edg2);
                 edges.Remove(edge);
             }
         }
@@ -472,6 +484,8 @@ namespace GridTableBuilder
                 var rect = new Rectangle(np.Offset, new Size(8, 8));
                 rect.Offset(-4, -4);
                 gr.FillEllipse(Brushes.Gray, rect);
+                rect.Offset(5, 5);
+                gr.DrawString($"p{np.Index}", DefaultFont, Brushes.Black, rect.Location);
             }
             // рисуем рёбра
             foreach (var ed in edges)
@@ -479,7 +493,10 @@ namespace GridTableBuilder
                 using (var pen = new Pen(Color.Black, 1))
                 {
                     gr.DrawLine(pen, ed.First.Offset, ed.Last.Offset);
-                }      
+                }
+                var p = new Point(ed.First.Offset.X, ed.First.Offset.Y);
+                p.Offset((ed.Last.Offset.X - ed.First.Offset.X) / 2 - 8, (ed.Last.Offset.Y - ed.First.Offset.Y) / 2 - 12);
+                gr.DrawString($"e{ed.Index}", DefaultFont, Brushes.Black, p);
             }
             //
             if (workMode == WorkMode.Create)
@@ -708,15 +725,15 @@ namespace GridTableBuilder
         {
             nodes.Clear();
             // добавление основных узловых точек на границах фигуры
-            nodes.Add(new PointNode(new Point(table.X, table.Y)));
-            nodes.Add(new PointNode(new Point(table.X + table.Width, table.Y)));
-            nodes.Add(new PointNode(new Point(table.X + table.Width, table.Y + table.Height)));
-            nodes.Add(new PointNode(new Point(table.X, table.Y + table.Height)));
+            nodes.Add(new PointNode(new Point(table.X, table.Y)) { Index = pointCount++ });
+            nodes.Add(new PointNode(new Point(table.X + table.Width, table.Y)) { Index = pointCount++ });
+            nodes.Add(new PointNode(new Point(table.X + table.Width, table.Y + table.Height)) { Index = pointCount++ });
+            nodes.Add(new PointNode(new Point(table.X, table.Y + table.Height)) { Index = pointCount++ });
             edges.Clear();
-            edges.Add(new Edge(nodes[0], nodes[1]));
-            edges.Add(new Edge(nodes[1], nodes[2]));
-            edges.Add(new Edge(nodes[2], nodes[3]));
-            edges.Add(new Edge(nodes[3], nodes[0]));
+            edges.Add(new Edge(nodes[0], nodes[1]) { Index = edgeCount++ });
+            edges.Add(new Edge(nodes[1], nodes[2]) { Index = edgeCount++ });
+            edges.Add(new Edge(nodes[2], nodes[3]) { Index = edgeCount++ });
+            edges.Add(new Edge(nodes[3], nodes[0]) { Index = edgeCount++ });
             nodes[0].Edges.Add(edges[0]);
             nodes[0].Edges.Add(edges[3]);
             nodes[1].Edges.Add(edges[0]);
@@ -725,6 +742,30 @@ namespace GridTableBuilder
             nodes[2].Edges.Add(edges[2]);
             nodes[3].Edges.Add(edges[2]);
             nodes[3].Edges.Add(edges[3]);
+
+            Text = $"Nodes: {nodes.Count}, Edges: {edges.Count}";
+            FillTreeView();
+        }
+
+        private void FillTreeView()
+        {
+            try
+            {
+                treeView1.BeginUpdate();
+                treeView1.Nodes.Clear();
+                foreach (var pn in nodes)
+                {
+                    var nd = new TreeNode($"p{pn.Index}");
+                    treeView1.Nodes.Add(nd);
+                    foreach (var ed in pn.Edges)
+                        nd.Nodes.Add($"e{ed.Index}");
+                }
+                treeView1.ExpandAll();
+            }
+            finally
+            {
+                treeView1.EndUpdate();
+            }
         }
 
         private void rbCreate_CheckedChanged(object sender, EventArgs e)
