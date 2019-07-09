@@ -50,6 +50,13 @@ namespace GridTableBuilder
                 };
             }
 
+            public bool Contains(Point point)
+            {
+                if (IsEmpty) return false;
+                return Math.Abs(First.X - Last.X) < epsilon && point.Y >= First.Y && point.Y <= Last.Y ||
+                       Math.Abs(First.Y - Last.Y) < epsilon && point.X >= First.X && point.X <= Last.X;
+            }
+
             public override string ToString()
             {
                 return $"{First} {Last}";
@@ -105,10 +112,7 @@ namespace GridTableBuilder
 
             public override string ToString()
             {
-                var info = IsVertical
-                    ? $"x:{First.Offset.X} y1:{First.Offset.Y}, y2:{Last.Offset.Y}" 
-                    : IsHorizontal ? $"x1:{First.Offset.X}, x2:{Last.Offset.X} y:{First.Offset.Y}" : "?";
-                return $"Ребро ({info})";
+                return $"e{Index}";
             }
         }
 
@@ -141,7 +145,7 @@ namespace GridTableBuilder
 
             public override string ToString()
             {
-                return $"Узел ({Offset})";
+                return $"p{Index}";
             }
         }
 
@@ -179,7 +183,7 @@ namespace GridTableBuilder
                     down = true;
                     firstPoint = lastPoint = e.Location;
                     splitLine = Line.Empty;
-
+                    CheckBorders();
                     Invalidate();
                 }
             }
@@ -193,21 +197,152 @@ namespace GridTableBuilder
             }
         }
 
-        //private Line GetNearEdge(Point location, float width = epsilon)
-        //{
-        //    using (var grp = new GraphicsPath())
-        //    using (var pen = new Pen(Color.Black, width))
-        //    {
-        //        foreach (var edge in edges)
-        //        {
-        //            grp.Reset();
-        //            grp.AddLine(edge.First.Offset, edge.Last.Offset);
-        //            if (grp.IsOutlineVisible(location, pen))
-        //                return new Line() { First = edge.First.Offset, Last = edge.Last.Offset };
-        //        }
-        //    }
-        //    return Line.Empty;
-        //}
+        /// <summary>
+        /// Проверка на существование пограничных рёбер 
+        /// </summary>
+        private void CheckBorders()
+        {
+            // проверка левой границы
+            if (Math.Abs(firstPoint.X - table.X) < epsilon &&
+                firstPoint.Y > table.Y + epsilon && firstPoint.Y < table.Y + table.Height + epsilon &&
+                GetNearEdge(firstPoint).IsEmpty)
+            {
+                var list = edges.Where(edge => edge.IsVertical && edge.First.Offset.X == table.X).ToList();
+                var line = new Line() { First = new Point(table.X, table.Y), Last = new Point(table.X, table.Y + table.Height) };
+                var full = GetEdgeLine(list, line, firstPoint);
+                if (full.IsEmpty) return;
+                splitLine = new Line
+                {
+                    First = new Point(table.X, full.Y),
+                    Last = new Point(table.X, full.Y + full.Height)
+                };
+            }
+            else
+            // проверка правой границы
+            if (Math.Abs(firstPoint.X - (table.X + table.Width)) < epsilon &&
+                firstPoint.Y > table.Y + epsilon && firstPoint.Y < table.Y + table.Height + epsilon &&
+                GetNearEdge(firstPoint).IsEmpty)
+            {
+                var list = edges.Where(edge => edge.IsVertical && edge.First.Offset.X == table.X + table.Width).ToList();
+                var line = new Line() { First = new Point(table.X + table.Width, table.Y), Last = new Point(table.X + table.Width, table.Y + table.Height) };
+                var full = GetEdgeLine(list, line, firstPoint);
+                if (full.IsEmpty) return;
+                splitLine = new Line
+                {
+                    First = new Point(table.X + table.Width, full.Y),
+                    Last = new Point(table.X + table.Width, full.Y + full.Height)
+                };
+            }
+            else
+            // проверка верхней границы
+            if (Math.Abs(firstPoint.Y - table.Y) < epsilon &&
+                firstPoint.X > table.X + epsilon && firstPoint.X < table.X + table.Width + epsilon &&
+                GetNearEdge(firstPoint).IsEmpty)
+            {
+                var list = edges.Where(edge => edge.IsHorizontal && edge.First.Offset.Y == table.Y).ToList();
+                var line = new Line() { First = new Point(table.X, table.Y), Last = new Point(table.X + table.Width, table.Y) };
+                var full = GetEdgeLine(list, line, firstPoint);
+                if (full.IsEmpty) return;
+                splitLine = new Line
+                {
+                    First = new Point(full.X, table.Y),
+                    Last = new Point(full.X + full.Width, table.Y)
+                };
+            }
+            else
+            // проверка нижней границы
+            if (Math.Abs(firstPoint.Y - (table.Y + table.Height)) < epsilon &&
+                firstPoint.X > table.X + epsilon && firstPoint.X < table.X + table.Width + epsilon &&
+                GetNearEdge(firstPoint).IsEmpty)
+            {
+                var list = edges.Where(edge => edge.IsHorizontal && edge.First.Offset.Y == table.Y + table.Height).ToList();
+                var line = new Line() { First = new Point(table.X, table.Y + table.Height), Last = new Point(table.X + table.Width, table.Y + table.Height) };
+                var full = GetEdgeLine(list, line, firstPoint);
+                if (full.IsEmpty) return;
+                splitLine = new Line
+                {
+                    First = new Point(full.X, table.Y + table.Height),
+                    Last = new Point(full.X + full.Width, table.Y + table.Height)
+                };
+            }
+        }
+
+        /// <summary>
+        /// Расчёт размерного прямоугольника для отсутствующих рёбер внешнего контура
+        /// </summary>
+        /// <param name="list"></param>
+        /// <param name="line"></param>
+        /// <param name="point"></param>
+        /// <returns></returns>
+        private Rectangle GetEdgeLine(List<Edge> list, Line line, Point point)
+        {
+            using (var grp = new GraphicsPath())
+            {
+                grp.AddLine(line.First, line.Last);
+                var full = Rectangle.Ceiling(grp.GetBounds());
+                if (full.Width == 0)
+                {
+                    full.Width = 4;
+                    full.Offset(-2, 0);
+                }
+                else if (full.Height == 0)
+                {
+                    full.Height = 4;
+                    full.Offset(0, -2);
+                }
+                using (var fr = new Region(full))
+                {
+                    foreach (var edge in list)
+                    {
+                        grp.Reset();
+                        grp.AddLine(edge.First.Offset, edge.Last.Offset);
+                        var rect = Rectangle.Ceiling(grp.GetBounds());
+                        if (rect.Width == 0)
+                        {
+                            rect.Width = 4;
+                            rect.Offset(-2, 0);
+                        }
+                        else if (rect.Height == 0)
+                        {
+                            rect.Height = 4;
+                            rect.Offset(0, -2);
+                        }
+                        using (var rg = new Region(rect))
+                            fr.Exclude(rg);
+                    }
+                    using (var image = new Bitmap(table.Width, table.Height))
+                    using (var gr = Graphics.FromImage(image))
+                    {
+                        foreach (var rect in fr.GetRegionScans(new Matrix()))
+                            if (rect.Contains(point))
+                                return Rectangle.Ceiling(rect);
+                    }
+                }
+            }
+            return Rectangle.Empty;
+        }
+
+        /// <summary>
+        /// Построить линию в точке над существующим ребром
+        /// </summary>
+        /// <param name="location"></param>
+        /// <param name="width"></param>
+        /// <returns></returns>
+        private Line GetNearEdge(Point location, float width = epsilon)
+        {
+            using (var grp = new GraphicsPath())
+            using (var pen = new Pen(Color.Black, width))
+            {
+                foreach (var edge in edges)
+                {
+                    grp.Reset();
+                    grp.AddLine(edge.First.Offset, edge.Last.Offset);
+                    if (grp.IsOutlineVisible(location, pen))
+                        return new Line() { First = edge.First.Offset, Last = edge.Last.Offset };
+                }
+            }
+            return Line.Empty;
+        }
 
         private void MainForm_MouseMove(object sender, MouseEventArgs e)
         {
@@ -258,7 +393,7 @@ namespace GridTableBuilder
         }
 
         /// <summary>
-        /// Список рёбер, которые пересекает обоасть действия ластика
+        /// Список рёбер, которые пересекает область действия ластика
         /// </summary>
         /// <param name="ribberRect">Область действия ластика</param>
         /// <returns></returns>
@@ -299,7 +434,8 @@ namespace GridTableBuilder
             // смотрим горизонтальные рёбра
             var horizontalEdges = edges.Where(edge => edge.IsHorizontal)
                                        .Where(edge => edge.First.Offset.X < x && edge.Last.Offset.X > x).ToList();
-            if (horizontalEdges.Count < 2) return Line.Empty;
+            if (horizontalEdges.Count < 2)
+                return Line.Empty;
             var edgeA = horizontalEdges.OrderBy(edge => Math.Abs(edge.First.Offset.Y - firstY)).ElementAt(0);
             var edgeB = horizontalEdges.OrderBy(edge => Math.Abs(edge.First.Offset.Y - lastY)).ElementAt(0);
             return edgeA == edgeB ? Line.Empty 
@@ -319,8 +455,9 @@ namespace GridTableBuilder
             var lastX = Math.Max(x1, x2);
             // смотрим вертикальные рёбра
             var verticalEdges = edges.Where(edge => edge.IsVertical)
-                                       .Where(edge => edge.First.Offset.Y < y && edge.Last.Offset.Y > y).ToList();
-            if (verticalEdges.Count < 2) return Line.Empty;
+                                     .Where(edge => edge.First.Offset.Y < y && edge.Last.Offset.Y > y).ToList();
+            if (verticalEdges.Count < 2)
+                return Line.Empty;
             var edgeA = verticalEdges.OrderBy(edge => Math.Abs(edge.First.Offset.X - firstX)).ElementAt(0);
             var edgeB = verticalEdges.OrderBy(edge => Math.Abs(edge.First.Offset.X - lastX)).ElementAt(0);
             return edgeA == edgeB ? Line.Empty
@@ -334,32 +471,32 @@ namespace GridTableBuilder
                 if (down)
                 {
                     down = false;
-                    if (!splitLine.IsEmpty)
+                    if (!splitLine.IsEmpty && splitLine.Contains(e.Location))
                     {
-                        // добавляем новые узлы
-                        var pn1 = new PointNode(splitLine.First);
-                        var pn2 = new PointNode(splitLine.Last);
-                        if (!nodes.Any(pn => pn.Offset.X == pn1.Offset.X && pn.Offset.Y == pn1.Offset.Y) &&
-                            !nodes.Any(pn => pn.Offset.X == pn2.Offset.X && pn.Offset.Y == pn2.Offset.Y))
+                        // добавляем новые узлы или присоединяемся к существующим
+                        var pn1 = nodes.FirstOrDefault(pn => pn.Offset == splitLine.First);
+                        if (pn1 == null)
                         {
-                            pn1.Index = pointCount++;
+                            pn1 = new PointNode(splitLine.First) { Index = pointCount++ };
                             nodes.Add(pn1);
                             // разбиваем ребро на два при добавлении узла
                             SplitEdge(pn1);
-
-                            pn2.Index = pointCount++;
+                        }
+                        var pn2 = nodes.FirstOrDefault(pn => pn.Offset == splitLine.Last);
+                        if (pn2 == null)
+                        {
+                            pn2 = new PointNode(splitLine.Last) { Index = pointCount++};
                             nodes.Add(pn2);
                             // разбиваем ребро на два при добавлении узла
                             SplitEdge(pn2);
-
-                            // добавляем новое ребро
-                            var edge = new Edge(pn1, pn2) { Index = edgeCount++ };
-                            pn1.Edges.Add(edge);
-                            pn2.Edges.Add(edge);
-                            // добавляем новые узлы в местах пересечения новым ребром
-                            // новое ребро может делиться старыми на несколько частей
-                            AddCrossNodesByEdge(edge);
                         }
+                        // добавляем новое ребро
+                        var edge = new Edge(pn1, pn2) { Index = edgeCount++ };
+                        pn1.Edges.Add(edge);
+                        pn2.Edges.Add(edge);
+                        // добавляем новые узлы в местах пересечения новым ребром
+                        // новое ребро может делиться старыми на несколько частей
+                        AddCrossNodesByEdge(edge);
                     }
 
                     firstPoint = lastPoint = e.Location;
@@ -372,14 +509,20 @@ namespace GridTableBuilder
                 if (down)
                 {
                     down = false;
-                    foreach (var edge in edgesToDelete)
+                    if (edgesToDelete.Count > 0)
                     {
-                        edges.Remove(edge);
-                        foreach (var pn in nodes)
-                            pn.Edges.Remove(edge);
+                        foreach (var edge in edgesToDelete)
+                        {
+                            edges.Remove(edge);
+                            foreach (var pn in nodes)
+                                if (pn.Edges.Contains(edge))
+                                    pn.Edges.Remove(edge);
+                            foreach (var pn in nodes.ToList())
+                                RemoveIsAnadromousNode(pn);
+                        }
+                        edgesToDelete.Clear();
+                        RemovePendentEdges();
                     }
-                    edgesToDelete.Clear();
-                    RemoveIsAnadromousNodes();
                     firstPoint = lastPoint = e.Location;
                     ribberRect = Rectangle.Empty;
                     Invalidate();
@@ -392,38 +535,65 @@ namespace GridTableBuilder
         /// <summary>
         /// Удаление проходных узловых точек
         /// </summary>
-        private void RemoveIsAnadromousNodes()
+        private void RemoveIsAnadromousNode(PointNode pn)
         {
-            var list = new List<PointNode>();
-            foreach (var pn in nodes)
+            if (!pn.IsAnadromous) return;
+            if (pn.Edges.Count != 2) return;
+            var pn1 = pn.Edges[0].First;
+            var pn2 = pn.Edges[1].Last;
+            if (pn1 == pn2)
             {
-                if (pn.IsEmpty)
-                    list.Add(pn);
-                if (pn.IsAnadromous)
-                    list.Add(pn);
+                pn1 = pn.Edges[0].Last;
+                pn2 = pn.Edges[1].First;
+                if (pn1 == pn2) return;
             }
-            foreach (var pn in list)
+            var edge4delete = GetJointEdge(pn, pn2);
+            var edge2modify = GetJointEdge(pn1, pn);
+            if (edge4delete != null && edge2modify != null)
             {
-                if (pn.IsAnadromous)
-                {
-                    if (pn.Edges.Count == 2)
-                    {
-                        var ed1 = pn.Edges[0];
-                        var ed2 = pn.Edges[1];
-                        var pn1 = ed1.First;
-                        var pn2 = ed2.Last;
-                        pn1.Edges.Remove(ed1);
-                        pn2.Edges.Remove(ed2);
-                        edges.Remove(ed1);
-                        edges.Remove(ed2);
-                        var edge = new Edge(pn1, pn2) { Index = edgeCount++ };
-                        edges.Add(edge);
-                        pn1.Edges.Add(edge);
-                        pn2.Edges.Add(edge);
-                    }
-                }
+                pn2.Edges.Remove(edge4delete);
+                pn2.Edges.Add(edge2modify);
+                if (edge2modify.First == pn)
+                    edge2modify.First = pn2;
+                else if (edge2modify.Last == pn)
+                    edge2modify.Last = pn2;
+                edges.Remove(edge4delete);
                 nodes.Remove(pn);
             }
+        }
+
+        /// <summary>
+        /// Удаление "висячих" точек и рёбер
+        /// </summary>
+        private void RemovePendentEdges()
+        {
+            while (nodes.Any(pn => pn.Edges.Count == 1))
+            foreach (var pn in nodes.ToList().Where(pn => pn.Edges.Count == 1))
+            {
+                if (pn.Edges.Count == 0) continue;
+                var edge = pn.Edges[0];
+                var pnOther = edge.First == pn ? edge.Last : edge.First;
+                pnOther.Edges.Remove(edge);
+                edges.Remove(edge);
+                nodes.Remove(pn);
+                RemoveIsAnadromousNode(pnOther);
+            }
+            nodes.RemoveAll(pn => pn.IsEmpty);
+        }
+
+        /// <summary>
+        /// Получить общее для двух точек ребро
+        /// </summary>
+        /// <param name="pt1"></param>
+        /// <param name="pt2"></param>
+        /// <returns></returns>
+        private Edge GetJointEdge(PointNode pt1, PointNode pt2)
+        {
+            foreach (var e1 in pt1.Edges)
+                foreach (var e2 in pt2.Edges)
+                    if (e1 == e2)
+                        return e1;
+            return null;
         }
 
         /// <summary>
@@ -508,9 +678,7 @@ namespace GridTableBuilder
             foreach (var ed in edges)
             {
                 using (var pen = new Pen(Color.Black, 1))
-                {
                     gr.DrawLine(pen, ed.First.Offset, ed.Last.Offset);
-                }
                 var p = new Point(ed.First.Offset.X, ed.First.Offset.Y);
                 p.Offset((ed.Last.Offset.X - ed.First.Offset.X) / 2 - 8, (ed.Last.Offset.Y - ed.First.Offset.Y) / 2 - 12);
                 gr.DrawString($"e{ed.Index}", DefaultFont, Brushes.Black, p);
@@ -525,31 +693,18 @@ namespace GridTableBuilder
                 }
                 // рисуем возможное ребро
                 if (!splitLine.IsEmpty)
-                {
-                    using (var pen = new Pen(Color.Black, 1))
-                    {
-                        pen.DashStyle = DashStyle.Dot;
+                    using (var pen = new Pen(Color.FromArgb(100, Color.Black), 3))
                         gr.DrawLine(pen, splitLine.First, splitLine.Last);
-                    }
-                }
             }
             else if (workMode == WorkMode.Delete)
             {
                 if (!ribberRect.IsEmpty)
-                {
                     using (var pen = new Pen(Color.Red, 1))
-                    {
                         gr.DrawRectangle(pen, ribberRect);
-                    }
-                }
                 // рисуем рёбра для удаления
                 foreach (var ed in edgesToDelete)
-                {
                     using (var pen = new Pen(Color.FromArgb(100, Color.Red), 3))
-                    {
                         gr.DrawLine(pen, ed.First.Offset, ed.Last.Offset);
-                    }
-                }
             }
         }
 
@@ -775,7 +930,11 @@ namespace GridTableBuilder
                     var nd = new TreeNode($"p{pn.Index}");
                     treeView1.Nodes.Add(nd);
                     foreach (var ed in pn.Edges)
-                        nd.Nodes.Add($"e{ed.Index}");
+                    {
+                        var name1 = ed.First != null ? $"p{ed.First.Index}" : "?";
+                        var name2 = ed.Last != null ? $"p{ed.Last.Index}" : "?";
+                        nd.Nodes.Add($"e{ed.Index} ({name1},{name2})");
+                    }
                 }
                 treeView1.ExpandAll();
             }

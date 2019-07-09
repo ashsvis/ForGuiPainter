@@ -43,7 +43,7 @@
             this.groupBox1.Controls.Add(this.rbCreate);
             this.groupBox1.Location = new System.Drawing.Point(13, 13);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(123, 91);
+            this.groupBox1.Size = new System.Drawing.Size(149, 91);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Режим";
@@ -92,7 +92,7 @@
             | System.Windows.Forms.AnchorStyles.Left)));
             this.treeView1.Location = new System.Drawing.Point(15, 110);
             this.treeView1.Name = "treeView1";
-            this.treeView1.Size = new System.Drawing.Size(121, 328);
+            this.treeView1.Size = new System.Drawing.Size(147, 328);
             this.treeView1.TabIndex = 1;
             // 
             // MainForm
