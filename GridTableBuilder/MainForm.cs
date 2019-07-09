@@ -13,16 +13,9 @@ namespace GridTableBuilder
 
         enum WorkMode
         {
-            Create,
-            Change,
-            Delete
-        }
-
-        enum DrawMode
-        {
-            WaitRect,
-            WaitLine,
-            Drag
+            Draw,
+            Move,
+            Erase
         }
 
         enum SplitKind
@@ -133,6 +126,9 @@ namespace GridTableBuilder
                 get { return Edges.Count == 0; }
             }
 
+            /// <summary>
+            /// Проходная узловая точка на линии рёбер
+            /// </summary>
             public bool IsAnadromous
             {
                 get
@@ -149,18 +145,18 @@ namespace GridTableBuilder
             }
         }
 
-        WorkMode workMode = WorkMode.Create;
+        WorkMode workMode = WorkMode.Draw;
         Rectangle table = new Rectangle(200, 50, 400, 300);
 
         bool down;
         Point firstPoint;
         Point lastPoint;
+        Point drarPoint;
+        SplitKind splitKind;
         Rectangle ribberRect;
         List<Edge> edgesToDelete = new List<Edge>();
 
         Line splitLine;
-        List<int> verticals = new List<int>();
-        List<int> horizontals = new List<int>();
         List<PointNode> nodes = new List<PointNode>();
         List<Edge> edges = new List<Edge>();
 
@@ -176,7 +172,7 @@ namespace GridTableBuilder
 
         private void MainForm_MouseDown(object sender, MouseEventArgs e)
         {
-            if (workMode == WorkMode.Create)
+            if (workMode == WorkMode.Draw)
             {
                 if (e.Button == MouseButtons.Left)
                 {
@@ -187,7 +183,15 @@ namespace GridTableBuilder
                     Invalidate();
                 }
             }
-            else if (workMode == WorkMode.Delete)
+            else if (workMode == WorkMode.Move)
+            {
+                down = true;
+                drarPoint = e.Location;
+                splitKind = MouseInHSplit(e.Location) ? SplitKind.Vertical : MouseInVSplit(e.Location) ? SplitKind.Horizontal : SplitKind.None;
+                splitLine = splitKind != SplitKind.None ? GetNearEdge(e.Location) : Line.Empty;
+                Invalidate();
+            }
+            else if (workMode == WorkMode.Erase)
             {
                 down = true;
                 firstPoint = lastPoint = e.Location;
@@ -346,7 +350,7 @@ namespace GridTableBuilder
 
         private void MainForm_MouseMove(object sender, MouseEventArgs e)
         {
-            if (workMode == WorkMode.Create)
+            if (workMode == WorkMode.Draw)
             {
                 if (down)
                 {
@@ -376,7 +380,25 @@ namespace GridTableBuilder
                     Invalidate();
                 }
             }
-            else if (workMode == WorkMode.Delete)
+            else if (workMode == WorkMode.Move)
+            {
+                if (down)
+                {
+                    if (!splitLine.IsEmpty)
+                    {
+                        var dx = splitKind == SplitKind.Vertical ? e.Location.X - drarPoint.X : 0;
+                        var dy = splitKind == SplitKind.Horizontal ? e.Location.Y - drarPoint.Y : 0;
+                        splitLine = splitLine.Offset(dx, dy);
+                        Cursor = splitKind == SplitKind.Horizontal 
+                            ? Cursors.HSplit : splitKind == SplitKind.Vertical ? Cursors.VSplit : Cursors.Default;
+                        Invalidate();
+                    }
+                    drarPoint = e.Location;
+                }
+                else
+                    Cursor = MouseInVSplit(e.Location) ? Cursors.HSplit : MouseInHSplit(e.Location) ? Cursors.VSplit : Cursors.Default;
+            }
+            else if (workMode == WorkMode.Erase)
             {
                 if (down)
                 {
@@ -466,7 +488,7 @@ namespace GridTableBuilder
 
         private void MainForm_MouseUp(object sender, MouseEventArgs e)
         {
-            if (workMode == WorkMode.Create)
+            if (workMode == WorkMode.Draw)
             {
                 if (down)
                 {
@@ -504,7 +526,17 @@ namespace GridTableBuilder
                     Invalidate();
                 }
             }
-            else if (workMode == WorkMode.Delete)
+            else if (workMode == WorkMode.Move)
+            {
+                if (down)
+                {
+                    down = false;
+
+                    splitLine = Line.Empty;
+                    Invalidate();
+                }
+            }
+            else if (workMode == WorkMode.Erase)
             {
                 if (down)
                 {
@@ -684,7 +716,7 @@ namespace GridTableBuilder
                 gr.DrawString($"e{ed.Index}", DefaultFont, Brushes.Black, p);
             }
             //
-            if (workMode == WorkMode.Create)
+            if (workMode == WorkMode.Draw)
             {
                 using (var pen = new Pen(Color.Magenta))
                 {
@@ -696,7 +728,14 @@ namespace GridTableBuilder
                     using (var pen = new Pen(Color.FromArgb(100, Color.Black), 3))
                         gr.DrawLine(pen, splitLine.First, splitLine.Last);
             }
-            else if (workMode == WorkMode.Delete)
+            else if (workMode == WorkMode.Move)
+            {
+                // рисуем перетаскиваемое ребро
+                if (!splitLine.IsEmpty)
+                    using (var pen = new Pen(Color.Magenta))
+                        gr.DrawLine(pen, splitLine.First, splitLine.Last);
+            }
+            else if (workMode == WorkMode.Erase)
             {
                 if (!ribberRect.IsEmpty)
                     using (var pen = new Pen(Color.Red, 1))
@@ -745,24 +784,57 @@ namespace GridTableBuilder
         //    }
         //}
 
-        //private bool MouseInVSplit(Point location, float width = epsilon)
-        //{
-        //    if (table.IsEmpty) return false;
-        //    if (horizontals.Count == 0) return false;
-        //    using (var grp = new GraphicsPath())
-        //    using (var pen = new Pen(Color.Black, width))
-        //    {
-        //        var lp = table.Location;
-        //        foreach (var offset in horizontals)
-        //        {
-        //            grp.Reset();
-        //            grp.AddLine(new Point(lp.X + offset, lp.Y), new Point(lp.X + offset, lp.Y + table.Height));
-        //            if (grp.IsOutlineVisible(location, pen))
-        //                return true;
-        //        }
-        //    }
-        //    return false;
-        //}
+        /// <summary>
+        /// Определение позиции курсора над внутренним горизонтальным ребром
+        /// </summary>
+        /// <param name="location"></param>
+        /// <param name="width"></param>
+        /// <returns></returns>
+        private bool MouseInVSplit(Point location, float width = epsilon)
+        {
+            if (table.IsEmpty) return false;
+            var horizontals = edges.Where(edge => edge.IsHorizontal && 
+                                          edge.First.Offset.Y > table.Y + epsilon && edge.First.Offset.Y < table.Y + table.Height - epsilon);
+            using (var grp = new GraphicsPath())
+            using (var pen = new Pen(Color.Black, width))
+            {
+                var lp = table.Location;
+                foreach (var edge in horizontals)
+                {
+                    grp.Reset();
+                    grp.AddLine(edge.First.Offset, edge.Last.Offset);
+                    if (grp.IsOutlineVisible(location, pen))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Определение позиции курсора над внутренним вертикальным ребром
+        /// </summary>
+        /// <param name="location"></param>
+        /// <param name="width"></param>
+        /// <returns></returns>
+        private bool MouseInHSplit(Point location, float width = epsilon)
+        {
+            if (table.IsEmpty) return false;
+            var verticals = edges.Where(edge => edge.IsVertical &&
+                                          edge.First.Offset.X > table.X + epsilon && edge.First.Offset.X < table.X + table.Width - epsilon);
+            using (var grp = new GraphicsPath())
+            using (var pen = new Pen(Color.Black, width))
+            {
+                var lp = table.Location;
+                foreach (var edge in verticals)
+                {
+                    grp.Reset();
+                    grp.AddLine(edge.First.Offset, edge.Last.Offset);
+                    if (grp.IsOutlineVisible(location, pen))
+                        return true;
+                }
+            }
+            return false;
+        }
 
         /// <summary>
         /// Ищем список ребёр, имеющих точку пересечения с указанным ребром
@@ -797,25 +869,6 @@ namespace GridTableBuilder
             return result;
         }
 
-
-        //private bool MouseInHSplit(Point location, float width = epsilon)
-        //{
-        //    if (table.IsEmpty) return false;
-        //    if (verticals.Count == 0) return false;
-        //    using (var grp = new GraphicsPath())
-        //    using (var pen = new Pen(Color.Black, width))
-        //    {
-        //        var lp = table.Location;
-        //        foreach (var offset in verticals)
-        //        {
-        //            grp.Reset();
-        //            grp.AddLine(new Point(lp.X, lp.Y + offset), new Point(lp.X + table.Width, lp.Y + offset));
-        //            if (grp.IsOutlineVisible(location, pen))
-        //                return true;
-        //        }
-        //    }
-        //    return false;
-        //}
 
         //private bool MouseInBorder(Point location, float width = epsilon)
         //{
@@ -947,11 +1000,11 @@ namespace GridTableBuilder
         private void rbCreate_CheckedChanged(object sender, EventArgs e)
         {
             if (rbCreate.Checked)
-                workMode = WorkMode.Create;
+                workMode = WorkMode.Draw;
             else if (rbMove.Checked)
-                workMode = WorkMode.Change;
+                workMode = WorkMode.Move;
             else if (rbDelete.Checked)
-                workMode = WorkMode.Delete;
+                workMode = WorkMode.Erase;
             Invalidate();
         }
     }

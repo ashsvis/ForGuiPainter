@@ -63,7 +63,6 @@
             // rbMove
             // 
             this.rbMove.AutoSize = true;
-            this.rbMove.Enabled = false;
             this.rbMove.Location = new System.Drawing.Point(9, 42);
             this.rbMove.Name = "rbMove";
             this.rbMove.Size = new System.Drawing.Size(91, 17);
