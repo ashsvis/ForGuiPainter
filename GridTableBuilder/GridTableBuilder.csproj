@@ -87,5 +87,11 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AnglePanelControl\AnglePanelControl.csproj">
+      <Project>{11058ca3-ca92-4738-8428-b5926dddcbec}</Project>
+      <Name>AnglePanelControl</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

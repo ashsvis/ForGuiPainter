@@ -106,5 +106,16 @@ namespace GridTableBuilder
         {
             treeView1.Visible = ((CheckBox)sender).Checked;
         }
+
+        private void anglePanel1_OnAngleChange(object sender, EventArgs e)
+        {
+            textBox1.Text = anglePanel1.Angle.ToString("0");
+            textBox2.Text = anglePanel1.Altitude.ToString("0");
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            anglePanel1_OnAngleChange(anglePanel1, new EventArgs());
+        }
     }
 }
