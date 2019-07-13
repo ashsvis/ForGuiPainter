@@ -161,7 +161,7 @@ namespace AnglePanelControl
         private void UpdateData()
         {
             var t = new PointF(ruler.X - center.X, ruler.Y - center.Y);
-            var r = (float)Math.Floor(Math.Sqrt(t.X * t.X + t.Y * t.Y));
+            var r = (float)Math.Sqrt(t.X * t.X + t.Y * t.Y);
             altitude = r / R * 90;
             if (altitude < 0)
                 altitude = 0;
