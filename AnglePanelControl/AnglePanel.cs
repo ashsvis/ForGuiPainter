@@ -19,8 +19,8 @@ namespace AnglePanelControl
 
         PointF ruler;
 
-        float angle = 135;
-        float altitude = 45;
+        float angle;
+        float altitude;
 
         private bool down;
         private Point fixRuler;
@@ -41,7 +41,7 @@ namespace AnglePanelControl
 
             R = rect.Width / 2;
             ruler = center = new PointF(rect.Left + R, rect.Top + R);
-            ruler = PointF.Add(center, new SizeF(-R / 2, -R / 2));
+            UpdateData();
         }
 
         private GraphicsPath GetAreaPath()
@@ -173,7 +173,6 @@ namespace AnglePanelControl
                 angle = -180;
             else if (angle > 180)
                 angle = 180;
-            OnChangeProperties();
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -234,6 +233,7 @@ namespace AnglePanelControl
                 {
                     ruler = PointF.Add(ruler, new SizeF(dx, dy));
                     UpdateData();
+                    OnChangeProperties();
                     fixRuler = e.Location;
                     Invalidate();
                 }

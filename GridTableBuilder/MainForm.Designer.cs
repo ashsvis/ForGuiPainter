@@ -162,7 +162,9 @@
             // 
             // anglePanel1
             // 
+            this.anglePanel1.Altitude = 42F;
             this.anglePanel1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.anglePanel1.Angle = 117F;
             this.anglePanel1.Location = new System.Drawing.Point(677, 13);
             this.anglePanel1.Name = "anglePanel1";
             this.anglePanel1.Size = new System.Drawing.Size(40, 40);
