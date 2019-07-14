@@ -38,11 +38,12 @@
             this.checkBox3 = new System.Windows.Forms.CheckBox();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
-            this.anglePanel1 = new AnglePanelControl.AnglePanel();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
+            this.anglePanel1 = new AnglePanelControl.AnglePanel();
+            this.checkBox4 = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -160,18 +161,6 @@
             this.label2.TabIndex = 5;
             this.label2.Text = "Altitude:";
             // 
-            // anglePanel1
-            // 
-            this.anglePanel1.Altitude = 42F;
-            this.anglePanel1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.anglePanel1.Angle = 117F;
-            this.anglePanel1.Location = new System.Drawing.Point(677, 13);
-            this.anglePanel1.Name = "anglePanel1";
-            this.anglePanel1.Size = new System.Drawing.Size(40, 40);
-            this.anglePanel1.TabIndex = 6;
-            this.anglePanel1.Text = "anglePanel1";
-            this.anglePanel1.OnAngleChange += new System.EventHandler(this.anglePanel1_OnAngleChange);
-            // 
             // textBox1
             // 
             this.textBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
@@ -210,11 +199,37 @@
             this.label4.TabIndex = 5;
             this.label4.Text = "°";
             // 
+            // anglePanel1
+            // 
+            this.anglePanel1.Altitude = 42F;
+            this.anglePanel1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.anglePanel1.Angle = 117F;
+            this.anglePanel1.Location = new System.Drawing.Point(677, 17);
+            this.anglePanel1.Name = "anglePanel1";
+            this.anglePanel1.Size = new System.Drawing.Size(40, 40);
+            this.anglePanel1.TabIndex = 6;
+            this.anglePanel1.Text = "anglePanel1";
+            this.anglePanel1.OnAngleChange += new System.EventHandler(this.anglePanel1_OnAngleChange);
+            // 
+            // checkBox4
+            // 
+            this.checkBox4.AutoSize = true;
+            this.checkBox4.Checked = true;
+            this.checkBox4.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBox4.Location = new System.Drawing.Point(690, 68);
+            this.checkBox4.Name = "checkBox4";
+            this.checkBox4.Size = new System.Drawing.Size(65, 17);
+            this.checkBox4.TabIndex = 8;
+            this.checkBox4.Text = "Enabled";
+            this.checkBox4.UseVisualStyleBackColor = true;
+            this.checkBox4.CheckedChanged += new System.EventHandler(this.checkBox4_CheckedChanged);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.checkBox4);
             this.Controls.Add(this.textBox2);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.anglePanel1);
@@ -259,6 +274,7 @@
         private System.Windows.Forms.TextBox textBox2;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.CheckBox checkBox4;
     }
 }
 

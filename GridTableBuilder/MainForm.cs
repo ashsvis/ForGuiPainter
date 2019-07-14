@@ -117,5 +117,10 @@ namespace GridTableBuilder
         {
             anglePanel1_OnAngleChange(anglePanel1, new EventArgs());
         }
+
+        private void checkBox4_CheckedChanged(object sender, EventArgs e)
+        {
+            anglePanel1.Enabled = ((CheckBox)sender).Checked;
+        }
     }
 }

@@ -185,29 +185,41 @@ namespace AnglePanelControl
                 var point1 = rect.Location;
                 var point2 = rect.Location;
                 using (var brush = new LinearGradientBrush(PointF.Add(point1, new SizeF(rect.Width / 2, 0)),
-                                       PointF.Add(point2, new SizeF(rect.Width / 2, rect.Height)), Color.Gray, Color.White))
+                                       PointF.Add(point2, new SizeF(rect.Width / 2, rect.Height)),
+                                       SystemColors.ControlDark,
+                                       SystemColors.ControlLightLight))
                     gr.FillPath(brush, path);
-                using (var pen = new Pen(Color.White, 1))
+                using (var pen = new Pen(SystemColors.ControlLightLight, 1))
                 {
                     rect.Inflate(-1, -1);
                     gr.DrawArc(pen, rect, 0, -180);
                 }
-                using (var pen = new Pen(Color.Black, 1))
+                using (var pen = new Pen(base.Enabled ? SystemColors.ControlDarkDark : SystemColors.InactiveCaption))
                     gr.DrawPath(pen, path);
             }
             // draw center
-            gr.FillEllipse(Brushes.DimGray, new RectangleF(new PointF(center.X - 2, center.Y - 2), new SizeF(4, 4)));
+            using (var brush = new SolidBrush(SystemColors.ControlDark))
+                gr.FillEllipse(brush, new RectangleF(new PointF(center.X - 2, center.Y - 2), new SizeF(4, 4)));
             // draw ruler
             using (var path = GetRulerPath())
             {
-                gr.FillPath(Brushes.White, path);
-                gr.DrawPath(Pens.Black, path);
+                using (var brush = new SolidBrush(SystemColors.ButtonFace))
+                    gr.FillPath(brush, path);
+                using (var pen = new Pen(base.Enabled ? SystemColors.ControlDarkDark : SystemColors.InactiveCaption))
+                    gr.DrawPath(pen, path);
             }
+        }
+
+        protected override void OnEnabledChanged(EventArgs e)
+        {
+            base.OnEnabledChanged(e);
+            Invalidate();
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
+            if (!base.Enabled) return;
             if (e.Button == MouseButtons.Left)
             {
                 using (var path = GetRulerPath())
@@ -222,6 +234,7 @@ namespace AnglePanelControl
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
+            if (!base.Enabled) return;
             if (down)
             {
                 var dx = e.Location.X - fixRuler.X;
@@ -243,6 +256,7 @@ namespace AnglePanelControl
         protected override void OnMouseUp(MouseEventArgs e)
         {
             base.OnMouseUp(e);
+            if (!base.Enabled) return;
             if (e.Button == MouseButtons.Left)
                 down = false;
         }
