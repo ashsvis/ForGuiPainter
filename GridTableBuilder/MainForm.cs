@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Windows.Forms;
 
 namespace GridTableBuilder
@@ -51,6 +52,9 @@ namespace GridTableBuilder
 
         private void MainForm_Paint(object sender, PaintEventArgs e)
         {
+            if (_image != null)
+                e.Graphics.DrawImage(_image, grid.Area.Location);
+
             grid.OnPaint(e.Graphics);
         }
 
@@ -121,6 +125,57 @@ namespace GridTableBuilder
         private void checkBox4_CheckedChanged(object sender, EventArgs e)
         {
             anglePanel1.Enabled = ((CheckBox)sender).Checked;
+        }
+
+        /// <source>
+        /// http://www.cyberforum.ru/csharp-net/thread522535.html#post3956206
+        /// </source>
+        public static Image EraseFon(Image original, byte deviation = 128)
+        {
+            Bitmap myImage = new Bitmap(original);
+
+            BitmapData imageData = myImage.LockBits(
+                                        new Rectangle(0, 0, myImage.Width, myImage.Height),
+                                        ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            int stride = imageData.Stride;
+            IntPtr Scan0 = imageData.Scan0;
+            unsafe
+            {
+                byte* p = (byte*)(void*)Scan0;
+                int nOffset = stride - myImage.Width * 4;
+                int nWidth = myImage.Width;
+                for (int y = 0; y < myImage.Height; y++)
+                {
+                    for (int x = 0; x < nWidth; x++)
+                    {
+                        //p[0] =... // задаём синий
+                        //p[1] =... // задаём зелёный
+                        //p[2] =... // задаём красный
+                        p[3] = deviation; // задаём альфа канал 0 - полностью прозрачный
+                        p += 4;
+                    }
+                    p += nOffset;
+                }
+            }
+            myImage.UnlockBits(imageData);
+            return (Image)myImage;
+        }
+
+        private Image _image;
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            var dlg = new OpenFileDialog
+            {
+                Filter = @"*Файлы графических форматов (.png;*.jpg;*.bmp;*.gif)|*.png;*.jpg;*.bmp;*.gif"
+            };
+            if (dlg.ShowDialog() != DialogResult.OK) return;
+            var original = (Bitmap)Image.FromFile(dlg.FileName);
+            _image = EraseFon(original);
+            var location = grid.Area.Location;
+            grid.Area = new Rectangle(location, new Size(_image.Width, _image.Height));
+            grid.Init();
+            Invalidate();
         }
     }
 }
