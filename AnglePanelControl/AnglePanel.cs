@@ -11,7 +11,6 @@ namespace AnglePanelControl
     {
         RectangleF rect;
         float R;
-        //GraphicsPath areaPath;
         PointF center;
 
         const float rulerSize = 3f;
