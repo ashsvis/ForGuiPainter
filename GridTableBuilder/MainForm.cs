@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace GridTableBuilder
@@ -17,6 +19,9 @@ namespace GridTableBuilder
             grid.Init();
             Text = $"Nodes: {grid.Nodes.Count}, Edges: {grid.Edges.Count}";
             FillTreeView();
+
+            grid.CyclesSearch();
+            FillCyclesList();
         }
 
         private void MainForm_MouseDown(object sender, MouseEventArgs e)
@@ -48,6 +53,32 @@ namespace GridTableBuilder
             Invalidate();
             Text = $"Nodes: {grid.Nodes.Count}, Edges: {grid.Edges.Count}";
             FillTreeView();
+
+            grid.SelectedCycle = new int[] { };
+            grid.CyclesSearch();
+            FillCyclesList();
+        }
+
+        class Cycle
+        {
+            public int[] Indexes { get; set; }
+
+            public Cycle(int[] items)
+            {
+                Indexes = new List<int>(items).ToArray();
+            }
+
+            public override string ToString()
+            {
+                return string.Join("-", Indexes);
+            }
+        }
+
+        private void FillCyclesList()
+        {
+            listBox1.Items.Clear();
+            foreach (var item in grid.CatalogCycles.Values)
+                listBox1.Items.Add(new Cycle(item));
         }
 
         private void MainForm_Paint(object sender, PaintEventArgs e)
@@ -119,6 +150,8 @@ namespace GridTableBuilder
 
         private void MainForm_Load(object sender, EventArgs e)
         {
+            grid.ShowNodeNames = checkBox1.Checked;
+
             anglePanel1_OnAngleChange(anglePanel1, new EventArgs());
         }
 
@@ -177,5 +210,13 @@ namespace GridTableBuilder
             grid.Init();
             Invalidate();
         }
+
+        private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            var cycle = listBox1.SelectedItem as Cycle;
+            grid.SelectedCycle = cycle != null ? cycle.Indexes : new int[] { };
+            Invalidate();
+        }
     }
+
 }

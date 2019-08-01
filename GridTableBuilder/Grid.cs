@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Linq;
 
 namespace GridTableBuilder
 {
@@ -68,6 +69,78 @@ namespace GridTableBuilder
             WorkMode = GridWorkMode.Draw;
         }
 
+        List<PointNode> V = new List<PointNode>();
+        List<Edge> E = new List<Edge>();
+
+        public void CyclesSearch()
+        {
+            CatalogCycles.Clear();
+
+            V.Clear();
+            NormIndexes();
+            V.AddRange(Nodes);
+            E.Clear();
+            E.AddRange(Edges);
+            var color = new int[V.Count];
+            for (var i = 0; i < V.Count; i++)
+            {
+                for (var k = 0; k < V.Count; k++)
+                    color[k] = 1;
+                var cycle = new List<int>();
+                //поскольку в C# нумерация элементов начинается с нуля, то для
+                //удобочитаемости результатов поиска в список добавляем номер i + 1
+                cycle.Add(i + 1);
+                DFScycle(i, i, E, color, -1, cycle);
+            }
+        }
+
+        private void NormIndexes()
+        {
+            var i = 0;
+            foreach (var node in Nodes.OrderBy(n => n.Index).ToList())
+                node.Index = i++;
+            i = 0;
+            foreach (var edge in Edges.OrderBy(e => e.Index).ToList())
+                edge.Index = i++;
+        }
+
+        public Dictionary<string, int[]> CatalogCycles = new Dictionary<string, int[]>();
+
+        public int[] SelectedCycle { get; internal set; } = new int[] { };
+
+        private void DFScycle(int u, int endV, List<Edge> E, int[] color, int unavailableEdge, List<int> cycle)
+        {
+            //если u == endV, то эту вершину перекрашивать не нужно, иначе мы в нее не вернемся, а вернуться необходимо
+            if (u != endV)
+                color[u] = 2;
+            else if (cycle.Count >= 2)
+            {
+                var s = string.Join("-", cycle.Skip(1).OrderBy(n => n));
+                if (!CatalogCycles.ContainsKey(s))
+                    CatalogCycles.Add(s, cycle.ToArray());
+                return;
+            }
+            for (int w = 0; w < E.Count; w++)
+            {
+                if (w == unavailableEdge)
+                    continue;
+                if (color[E[w].Node2.Index] == 1 && E[w].Node1.Index == u)
+                {
+                    var cycleNEW = new List<int>(cycle);
+                    cycleNEW.Add(E[w].Node2.Index + 1);
+                    DFScycle(E[w].Node2.Index, endV, E, color, w, cycleNEW);
+                    color[E[w].Node2.Index] = 1;
+                }
+                else if (color[E[w].Node1.Index] == 1 && E[w].Node2.Index == u)
+                {
+                    var cycleNEW = new List<int>(cycle);
+                    cycleNEW.Add(E[w].Node1.Index + 1);
+                    DFScycle(E[w].Node1.Index, endV, E, color, w, cycleNEW);
+                    color[E[w].Node1.Index] = 1;
+                }
+            }
+        }
+
         public void OnLeftMouseDown(Point location)
         {
             if (WorkMode == GridWorkMode.Draw)
@@ -116,7 +189,8 @@ namespace GridTableBuilder
                 {
                     rect.Offset(5, 5);
                     using (var font = new Font("Arial", 8))
-                        gr.DrawString($"p{np.Index}", font, Brushes.Black, rect.Location);
+                        //gr.DrawString($"p{np.Index}", font, Brushes.Black, rect.Location);
+                        gr.DrawString($"{np.Index + 1}", font, Brushes.Black, rect.Location);
                 }
             }
             // рисуем рёбра
@@ -139,6 +213,20 @@ namespace GridTableBuilder
                 PaintInMoveMode(graphics);
             else if (WorkMode == GridWorkMode.Erase)
                 PaintInEraseMode(graphics);
+
+            if (SelectedCycle.Length > 0)
+            {
+                var points = new List<Point>();
+                foreach (var index in SelectedCycle)
+                {
+                    var node = Nodes.FirstOrDefault(n => n.Index == index - 1);
+                    if (node == null) continue;
+                    points.Add(node.Offset);
+                }
+                using (var pen = new Pen(Color.Black, 2))
+                    gr.DrawLines(pen, points.ToArray());
+
+            }
         }
 
     }
