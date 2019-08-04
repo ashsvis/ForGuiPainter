@@ -92,6 +92,46 @@ namespace GridTableBuilder
                 cycle.Add(i + 1);
                 DFScycle(i, i, E, color, -1, cycle);
             }
+            //
+            var keys = new List<string>();
+            foreach (var key in CatalogCycles.Keys)
+            {
+                var cycle = CatalogCycles[key];
+                // получаем список ребер, составляющий этот цикл
+                var cycleEdges = new List<Edge>();
+                var found = false;
+                for (var i = 1; i < cycle.Length; i++)
+                {
+                    var n1 = Nodes[cycle[i - 1] - 1];
+                    var n2 = Nodes[cycle[i] - 1];
+                    var edge = n1.Edges.Intersect(n2.Edges).First();
+                    if (cycleEdges.Count > 0)
+                    {
+                        var lastEdge = cycleEdges[cycleEdges.Count - 1];
+                        if (!found)
+                            found = edge.IsSameOrientation(lastEdge);
+                    }
+                    cycleEdges.Add(edge);
+                }
+                if (found)
+                    keys.Add(key);
+                //
+                foreach (var nodeIndex in cycle.Distinct())
+                {
+                    var node = Nodes[nodeIndex - 1];
+                    if (node.Edges.Any(e => node.Edges.Count > 2 && !cycleEdges.Contains(e)))
+                    {
+                        var edge = node.Edges.First(e => !cycleEdges.Contains(e));
+                        if (edge.Node1 != node && cycle.Contains(edge.Node1.Index + 1) ||
+                            edge.Node2 != node && cycle.Contains(edge.Node2.Index + 1))
+                        {
+                            keys.Add(key);
+                        }
+                    }
+                }
+            }
+            foreach (var key in keys)
+                CatalogCycles.Remove(key);
         }
 
         private void NormIndexes()
