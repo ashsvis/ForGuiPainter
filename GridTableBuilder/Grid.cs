@@ -92,7 +92,50 @@ namespace GridTableBuilder
                 cycle.Add(i + 1);
                 DFScycle(i, i, E, color, -1, cycle);
             }
+
+            var list = new List<Tuple<string, Region>>();
+            foreach (var key in CatalogCycles.Keys)
+            {
+                var cycle = CatalogCycles[key];
+                using (var gp = new GraphicsPath())
+                {
+                    for (var i = 1; i < cycle.Length; i++)
+                    {
+                        var n1 = Nodes[cycle[i - 1] - 1];
+                        var n2 = Nodes[cycle[i] - 1];
+                        gp.AddLine(n1.Offset, n2.Offset);
+                    }
+                    using (var rgn = new Region(gp))
+                    {
+                        list.Add(new Tuple<string, Region>(key, rgn.Clone()));
+                    }
+                }
+            }
             //
+            var keys = new HashSet<string>();
+            using (var image = new Bitmap(1000, 1000))
+            using (var g = Graphics.FromImage(image))
+                for (var i = 0; i < list.Count; i++)
+                {
+                    for (var j = i + 1; j < list.Count; j++)
+                    {
+                        using (var test = list[i].Item2.Clone())
+                        {
+                            test.Intersect(list[j].Item2);
+                            if (test.Equals(list[i].Item2, g))
+                            {
+                                keys.Add(list[j].Item1);
+                            }
+                        }
+                    }
+                }
+            foreach (var key in keys)
+                CatalogCycles.Remove(key);
+            //
+            foreach (var rgn in list)
+                rgn.Item2.Dispose();
+
+            /*
             var keys = new List<string>();
             var nodes = new List<PointNode>();
             foreach (var key in CatalogCycles.Keys)
@@ -149,6 +192,8 @@ namespace GridTableBuilder
             }
             foreach (var key in keys)
                 CatalogCycles.Remove(key);
+
+            */
         }
 
         private void NormIndexes()
