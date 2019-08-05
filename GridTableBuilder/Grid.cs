@@ -94,12 +94,12 @@ namespace GridTableBuilder
             }
             //
             var keys = new List<string>();
+            var nodes = new List<PointNode>();
             foreach (var key in CatalogCycles.Keys)
             {
                 var cycle = CatalogCycles[key];
                 // получаем список ребер, составляющий этот цикл
                 var cycleEdges = new List<Edge>();
-                var found = false;
                 for (var i = 1; i < cycle.Length; i++)
                 {
                     var n1 = Nodes[cycle[i - 1] - 1];
@@ -108,25 +108,42 @@ namespace GridTableBuilder
                     if (cycleEdges.Count > 0)
                     {
                         var lastEdge = cycleEdges[cycleEdges.Count - 1];
-                        if (!found)
-                            found = edge.IsSameOrientation(lastEdge);
+                        if (edge.IsSameOrientation(lastEdge))
+                        {
+                            if (!nodes.Contains(n1))
+                                nodes.Add(n1);
+                        }
                     }
                     cycleEdges.Add(edge);
                 }
-                if (found)
-                    keys.Add(key);
-                //
-                foreach (var nodeIndex in cycle.Distinct())
+                foreach (var n in nodes)
                 {
-                    var node = Nodes[nodeIndex - 1];
+                    var node = n;
                     if (node.Edges.Any(e => node.Edges.Count > 2 && !cycleEdges.Contains(e)))
                     {
-                        var edge = node.Edges.First(e => !cycleEdges.Contains(e));
-                        if (edge.Node1 != node && cycle.Contains(edge.Node1.Index + 1) ||
-                            edge.Node2 != node && cycle.Contains(edge.Node2.Index + 1))
-                        {
-                            keys.Add(key);
-                        }
+                        //var edge = node.Edges.First(e => !cycleEdges.Contains(e));
+                        //if (edge.Node1 != node && cycle.Contains(edge.Node1.Index + 1) ||
+                        //    edge.Node2 != node && cycle.Contains(edge.Node2.Index + 1))
+                        //{
+                        //    if (!keys.Contains(key))
+                        //        keys.Add(key);
+                        //}
+                        //else 
+                        //if (edge.Node1 != node && !cycle.Contains(edge.Node1.Index + 1) ||
+                        //         edge.Node2 != node && !cycle.Contains(edge.Node2.Index + 1))
+                        //{
+                        //    var cn = edge.Node1 != node ? edge.Node1 : edge.Node2;
+                        //    var minX = cycle.Select(c => Nodes[c - 1].Offset.X).Min();
+                        //    var maxX = cycle.Select(c => Nodes[c - 1].Offset.X).Max();
+                        //    var minY = cycle.Select(c => Nodes[c - 1].Offset.Y).Min();
+                        //    var maxY = cycle.Select(c => Nodes[c - 1].Offset.Y).Max();
+                        //    if (cn.Offset.X >= minX && cn.Offset.X <= maxX &&
+                        //        cn.Offset.Y >= minY && cn.Offset.Y <= maxY)
+                        //    {
+                        //        if (!keys.Contains(key))
+                        //            keys.Add(key);
+                        //    }
+                        //}
                     }
                 }
             }

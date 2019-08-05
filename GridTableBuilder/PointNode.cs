@@ -36,7 +36,7 @@ namespace GridTableBuilder
 
         public override string ToString()
         {
-            return $"p{Index}";
+            return $"p{Index + 1}";
         }
     }
 }
