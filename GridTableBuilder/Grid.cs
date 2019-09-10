@@ -81,17 +81,36 @@ namespace GridTableBuilder
             V.AddRange(Nodes);
             E.Clear();
             E.AddRange(Edges);
-            var color = new int[V.Count];
-            for (var i = 0; i < V.Count; i++)
+
+            for (var i = 0; i < E.Count; i++)
             {
-                for (var k = 0; k < V.Count; k++)
-                    color[k] = 1;
-                var cycle = new List<int>();
-                //поскольку в C# нумерация элементов начинается с нуля, то для
-                //удобочитаемости результатов поиска в список добавляем номер i + 1
-                cycle.Add(i + 1);
-                DFScycle(i, i, E, color, -1, cycle);
+                var edge = E[i];
+                var firstEdgeIndex = edge.Index;
+                var cycle = new List<int> { firstEdgeIndex };
+                while (true)
+                {
+                    edge = edge.GetNextRightEdge();
+                    if (edge.Index == firstEdgeIndex) break;
+                    cycle.Add(edge.Index);
+                }
+                var s = string.Join("-", cycle.Skip(1).OrderBy(n => n));
+                if (!CatalogCycles.ContainsKey(s))
+                    CatalogCycles.Add(s, cycle.ToArray());
             }
+
+
+
+            //var color = new int[V.Count];
+            //for (var i = 0; i < V.Count; i++)
+            //{
+            //    for (var k = 0; k < V.Count; k++)
+            //        color[k] = 1;
+            //    var cycle = new List<int>();
+            //    //поскольку в C# нумерация элементов начинается с нуля, то для
+            //    //удобочитаемости результатов поиска в список добавляем номер i + 1
+            //    cycle.Add(i + 1);
+            //    DFScycle(i, i, E, color, -1, cycle);
+            //}
 
         }
 

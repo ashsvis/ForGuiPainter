@@ -1,4 +1,6 @@
-﻿namespace GridTableBuilder
+﻿using System.Linq;
+
+namespace GridTableBuilder
 {
     public class Edge
     {
@@ -60,6 +62,33 @@
         public override string ToString()
         {
             return $"e{Index}";
+        }
+
+        public Edge GetNextRightEdge()
+        {
+            PointNode rightNode = null;
+            Edge edge;
+            if (IsHorizontal)
+            {
+                rightNode = Node2.Offset.X > Node1.Offset.X ? Node2 : Node1;
+                edge = rightNode.Edges.Where(item => item.IsPerpendicularOrientation(this))
+                                      .FirstOrDefault(item => item.Node1 != rightNode && item.Node1.Offset.Y > rightNode.Offset.Y ||
+                                                              item.Node2 != rightNode && item.Node2.Offset.Y > rightNode.Offset.Y);
+                if (edge == null)
+                    throw new System.Exception("It is impossible!");
+                return edge;
+            }
+            else if (IsVertical)
+            {
+                rightNode = Node2.Offset.Y > Node1.Offset.Y ? Node2 : Node1;
+                edge = rightNode.Edges.Where(item => item.IsPerpendicularOrientation(this))
+                                      .FirstOrDefault(item => item.Node1 != rightNode && item.Node1.Offset.X < rightNode.Offset.X ||
+                                                              item.Node2 != rightNode && item.Node2.Offset.X < rightNode.Offset.X);
+                if (edge == null)
+                    throw new System.Exception("It is impossible!");
+                return edge;
+            }
+            throw new System.Exception("It is impossible!");
         }
     }
 }
