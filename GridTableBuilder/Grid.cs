@@ -82,9 +82,12 @@ namespace GridTableBuilder
             E.Clear();
             E.AddRange(Edges);
 
-            for (var i = 0; i < E.Count; i++)
+            for (var i = 0; i < V.Count; i++)
             {
-                var edge = E[i];
+                var node = V[i];
+                var edge = node.Edges.First();
+                Console.WriteLine($"{node}, {edge}");
+
                 var firstEdgeIndex = edge.Index;
                 var cycle = new List<int> { firstEdgeIndex };
                 while (true)
@@ -96,7 +99,24 @@ namespace GridTableBuilder
                 var s = string.Join("-", cycle.Skip(1).OrderBy(n => n));
                 if (!CatalogCycles.ContainsKey(s))
                     CatalogCycles.Add(s, cycle.ToArray());
+
             }
+            Console.WriteLine("========");
+            //for (var i = 0; i < E.Count; i++)
+            //{
+            //    var edge = E[i];
+            //    var firstEdgeIndex = edge.Index;
+            //    var cycle = new List<int> { firstEdgeIndex };
+            //    while (true)
+            //    {
+            //        edge = edge.GetNextRightEdge();
+            //        if (edge.Index == firstEdgeIndex) break;
+            //        cycle.Add(edge.Index);
+            //    }
+            //    var s = string.Join("-", cycle.Skip(1).OrderBy(n => n));
+            //    if (!CatalogCycles.ContainsKey(s))
+            //        CatalogCycles.Add(s, cycle.ToArray());
+            //}
 
 
 
