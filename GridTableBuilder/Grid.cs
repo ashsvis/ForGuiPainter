@@ -66,6 +66,9 @@ namespace GridTableBuilder
             Nodes[3].Edges.Add(Edges[2]);
             Nodes[3].Edges.Add(Edges[3]);
 
+            foreach (var node in Nodes)
+                node.NormEdges();
+
             WorkMode = GridWorkMode.Draw;
         }
 
@@ -88,20 +91,21 @@ namespace GridTableBuilder
                 var edge = node.Edges.First();
                 Console.WriteLine($"{node}, {edge}");
 
-                var firstEdgeIndex = edge.Index;
-                var cycle = new List<int> { firstEdgeIndex };
-                while (true)
-                {
-                    edge = edge.GetNextRightEdge();
-                    if (edge.Index == firstEdgeIndex) break;
-                    cycle.Add(edge.Index);
-                }
-                var s = string.Join("-", cycle.Skip(1).OrderBy(n => n));
-                if (!CatalogCycles.ContainsKey(s))
-                    CatalogCycles.Add(s, cycle.ToArray());
+                //var firstEdgeIndex = edge.Index;
+                //var cycle = new List<int> { firstEdgeIndex };
+                //while (true)
+                //{
+                //    edge = edge.GetNextRightEdge();
+                //    if (edge.Index == firstEdgeIndex) break;
+                //    cycle.Add(edge.Index);
+                //}
+                //var s = string.Join("-", cycle.Skip(1).OrderBy(n => n));
+                //if (!CatalogCycles.ContainsKey(s))
+                //    CatalogCycles.Add(s, cycle.ToArray());
 
             }
             Console.WriteLine("========");
+
             //for (var i = 0; i < E.Count; i++)
             //{
             //    var edge = E[i];
@@ -138,7 +142,10 @@ namespace GridTableBuilder
         {
             var i = 0;
             foreach (var node in Nodes.OrderBy(n => n.Index).ToList())
+            {
                 node.Index = i++;
+                node.NormEdges();
+            }
             i = 0;
             foreach (var edge in Edges.OrderBy(e => e.Index).ToList())
                 edge.Index = i++;

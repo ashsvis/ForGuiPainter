@@ -34,6 +34,44 @@ namespace GridTableBuilder
             }
         }
 
+        public void NormEdges()
+        {
+            var list = new List<Edge>(Edges);
+            Edges.Clear();
+            // ищем горизонтальное ребро справа от узла 
+            var edge = list.Where(item => item.IsHorizontal).FirstOrDefault(item => item.Node1 != this && item.Node1.Offset.X > this.Offset.X ||
+                                                                                    item.Node2 != this && item.Node2.Offset.X > this.Offset.X);
+            if (edge != null)
+            {
+                Edges.Add(edge);
+                list.Remove(edge);
+            }
+            // далее ищем вертикальное ребро снизу от узла 
+            edge = list.Where(item => item.IsVertical).FirstOrDefault(item => item.Node1 != this && item.Node1.Offset.Y > this.Offset.Y ||
+                                                                              item.Node2 != this && item.Node2.Offset.Y > this.Offset.Y);
+            if (edge != null)
+            {
+                Edges.Add(edge);
+                list.Remove(edge);
+            }
+            // ищем горизонтальное ребро слева от узла 
+            edge = list.Where(item => item.IsHorizontal).FirstOrDefault(item => item.Node1 != this && item.Node1.Offset.X < this.Offset.X ||
+                                                                                item.Node2 != this && item.Node2.Offset.X < this.Offset.X);
+            if (edge != null)
+            {
+                Edges.Add(edge);
+                list.Remove(edge);
+            }
+            // далее ищем вертикальное ребро сверху от узла 
+            edge = list.Where(item => item.IsVertical).FirstOrDefault(item => item.Node1 != this && item.Node1.Offset.Y < this.Offset.Y ||
+                                                                              item.Node2 != this && item.Node2.Offset.Y < this.Offset.Y);
+            if (edge != null)
+            {
+                Edges.Add(edge);
+                list.Remove(edge);
+            }
+        }
+
         public override string ToString()
         {
             return $"p{Index + 1}";
