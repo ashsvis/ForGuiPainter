@@ -9,6 +9,11 @@ namespace GridTableBuilder
         public Point Offset { get; set; }
         public List<Edge> Edges { get; set; } = new List<Edge>();
 
+        public Edge East { get; set; }
+        public Edge West { get; set; }
+        public Edge Nord { get; set; }
+        public Edge South { get; set; }
+
         public int Index { get; set; }
 
         public PointNode(Point offset)
@@ -36,6 +41,11 @@ namespace GridTableBuilder
 
         public void NormEdges()
         {
+            East = null;
+            West = null;
+            Nord = null;
+            South = null;
+
             var list = new List<Edge>(Edges);
             Edges.Clear();
             // ищем горизонтальное ребро справа от узла 
@@ -45,6 +55,7 @@ namespace GridTableBuilder
             {
                 Edges.Add(edge);
                 list.Remove(edge);
+                East = edge;
             }
             // далее ищем вертикальное ребро снизу от узла 
             edge = list.Where(item => item.IsVertical).FirstOrDefault(item => item.Node1 != this && item.Node1.Offset.Y > this.Offset.Y ||
@@ -53,6 +64,7 @@ namespace GridTableBuilder
             {
                 Edges.Add(edge);
                 list.Remove(edge);
+                South = edge;
             }
             // ищем горизонтальное ребро слева от узла 
             edge = list.Where(item => item.IsHorizontal).FirstOrDefault(item => item.Node1 != this && item.Node1.Offset.X < this.Offset.X ||
@@ -61,6 +73,7 @@ namespace GridTableBuilder
             {
                 Edges.Add(edge);
                 list.Remove(edge);
+                West = edge;
             }
             // далее ищем вертикальное ребро сверху от узла 
             edge = list.Where(item => item.IsVertical).FirstOrDefault(item => item.Node1 != this && item.Node1.Offset.Y < this.Offset.Y ||
@@ -69,6 +82,7 @@ namespace GridTableBuilder
             {
                 Edges.Add(edge);
                 list.Remove(edge);
+                Nord = edge;
             }
         }
 
