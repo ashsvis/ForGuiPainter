@@ -86,6 +86,23 @@ namespace GridTableBuilder
             }
         }
 
+        public Edge GetRightEdgeBy(Edge edge)
+        {
+            if (edge == null)
+                return Edges.First();
+            if (Edges.FirstOrDefault(item => item == edge) == null)
+                throw new System.Exception("Ребро должно принадлежать этому узлу!");
+            if (edge == South)
+                return East ?? Edges.FirstOrDefault(item => item != edge);
+            if (edge == East)
+                return South ?? Edges.FirstOrDefault(item => item != edge);
+            if (edge == Nord)
+                return West ?? Edges.FirstOrDefault(item => item != edge);
+            if (edge == West)
+                return Nord ?? Edges.FirstOrDefault(item => item != edge);
+            throw new System.Exception("Ну такого просто не может быть!");
+        }
+
         public override string ToString()
         {
             return $"p{Index + 1}";
