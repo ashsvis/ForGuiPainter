@@ -244,59 +244,17 @@ end
             E.Clear();
             E.AddRange(Edges);
 
+            var color = new int[V.Count];
             for (var i = 0; i < V.Count; i++)
             {
-                var node = V[i];
-                var firstNodeIndex = node.Index;
-                var cycle = new List<int> { firstNodeIndex + 1 };
-                Edge edge = null;
-                while (true)
-                {
-                    edge = node.GetRightEdgeBy(edge);
-                    node = edge.Node1 == node ? edge.Node2 : edge.Node1;
-                    if (node.Index == firstNodeIndex)
-                    {
-                        cycle.Add(firstNodeIndex + 1);
-                        break;
-                    }
-                    cycle.Add(node.Index + 1);
-                }
-                var s = string.Join("-", cycle.Skip(1).OrderBy(n => n));
-                if (!CatalogCycles.ContainsKey(s))
-                    CatalogCycles.Add(s, cycle.ToArray());
-
+                for (var k = 0; k < V.Count; k++)
+                    color[k] = 1;
+                var cycle = new List<int>();
+                //поскольку в C# нумерация элементов начинается с нуля, то для
+                //удобочитаемости результатов поиска в список добавляем номер i + 1
+                cycle.Add(i + 1);
+                DFScycle(i, i, E, color, -1, cycle);
             }
-            Console.WriteLine("========");
-
-            //for (var i = 0; i < E.Count; i++)
-            //{
-            //    var edge = E[i];
-            //    var firstEdgeIndex = edge.Index;
-            //    var cycle = new List<int> { firstEdgeIndex };
-            //    while (true)
-            //    {
-            //        edge = edge.GetNextRightEdge();
-            //        if (edge.Index == firstEdgeIndex) break;
-            //        cycle.Add(edge.Index);
-            //    }
-            //    var s = string.Join("-", cycle.Skip(1).OrderBy(n => n));
-            //    if (!CatalogCycles.ContainsKey(s))
-            //        CatalogCycles.Add(s, cycle.ToArray());
-            //}
-
-
-
-            //var color = new int[V.Count];
-            //for (var i = 0; i < V.Count; i++)
-            //{
-            //    for (var k = 0; k < V.Count; k++)
-            //        color[k] = 1;
-            //    var cycle = new List<int>();
-            //    //поскольку в C# нумерация элементов начинается с нуля, то для
-            //    //удобочитаемости результатов поиска в список добавляем номер i + 1
-            //    cycle.Add(i + 1);
-            //    DFScycle(i, i, E, color, -1, cycle);
-            //}
 
         }
 
