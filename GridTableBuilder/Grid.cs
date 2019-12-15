@@ -256,6 +256,7 @@ end
                 DFScycle(i, i, E, color, -1, cycle);
             }
 
+            FilterCycles();
         }
 
         private void NormIndexes()
@@ -383,6 +384,7 @@ end
 
             if (SelectedCycle.Length > 0)
             {
+                // набираем точки для рисования выбранного цикла 
                 var points = new List<Point>();
                 foreach (var index in SelectedCycle)
                 {
@@ -390,9 +392,74 @@ end
                     if (node == null) continue;
                     points.Add(node.Offset);
                 }
+                // заливка жёлтым выбранного региона
+                using (var path = new GraphicsPath())
+                {
+                    path.AddLines(points.ToArray());
+                    using (var rgn = new Region(path))
+                    {
+                        gr.FillRegion(Brushes.Yellow, rgn);
+                    }
+                }
+                // рисуем чёрным границу выделенного цикла
                 using (var pen = new Pen(Color.Black, 2))
                     gr.DrawLines(pen, points.ToArray());
+            }
+        }
 
+        public void FilterCycles()
+        {
+            var regions = new List<Tuple<Region, string>>();
+            try
+            {
+                // подготовка списка регионов
+                foreach (var key in CatalogCycles.Keys)
+                {
+                    var cycle = CatalogCycles[key];
+                    var points = new List<Point>();
+                    foreach (var index in cycle)
+                    {
+                        var node = Nodes.FirstOrDefault(n => n.Index == index - 1);
+                        if (node == null) continue;
+                        points.Add(node.Offset);
+                    }
+                    using (var path = new GraphicsPath())
+                    {
+                        path.AddLines(points.ToArray());
+                        regions.Add(new Tuple<Region, string>(new Region(path), key));
+                    }
+                }
+                // обработка списка регионов
+                var comboCycles = new List<string>();
+                using (var bmp = new Bitmap(1000, 1000))
+                {
+                    using (var g = Graphics.FromImage(bmp))
+                    {
+                        for (var i = 0; i < regions.Count; i++)
+                        {
+                            var rgn1 = regions[i].Item1;
+                            var key1 = regions[i].Item2;
+                            for (var j = i + 1; j < regions.Count; j++)
+                            {
+                                var rgn2 = regions[j].Item1;
+                                using (var rgn = new Region(rgn2.GetRegionData()))
+                                {
+                                    rgn.Intersect(rgn1);
+                                    if (rgn.Equals(rgn2, g) && !comboCycles.Contains(key1))
+                                        comboCycles.Add(key1);
+                                }
+                            }
+                        }
+                    }
+                }
+                // исключение составных циклов
+                foreach (var cycle in comboCycles)
+                    CatalogCycles.Remove(cycle);
+            }
+            finally
+            {
+                for (var i = 0; i < regions.Count; i++)
+                    regions[i].Item1.Dispose();
             }
         }
 
