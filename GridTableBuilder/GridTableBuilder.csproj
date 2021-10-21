@@ -93,6 +93,10 @@
       <Project>{11058ca3-ca92-4738-8428-b5926dddcbec}</Project>
       <Name>AnglePanelControl</Name>
     </ProjectReference>
+    <ProjectReference Include="..\SlidePanelControl\SlidePanelControl.csproj">
+      <Project>{874FDFBA-AA7B-4CA5-9AF2-A96402709B08}</Project>
+      <Name>SlidePanelControl</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

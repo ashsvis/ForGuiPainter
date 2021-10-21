@@ -44,8 +44,11 @@
             this.label4 = new System.Windows.Forms.Label();
             this.checkBox4 = new System.Windows.Forms.CheckBox();
             this.listBox1 = new System.Windows.Forms.ListBox();
+            this.slidePanel1 = new SlidePanelControl.SlidePanel();
             this.anglePanel1 = new AnglePanelControl.AnglePanel();
             this.groupBox1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.slidePanel1)).BeginInit();
+            this.slidePanel1.SuspendLayout();
             this.SuspendLayout();
             // 
             // groupBox1
@@ -53,9 +56,9 @@
             this.groupBox1.Controls.Add(this.rbDelete);
             this.groupBox1.Controls.Add(this.rbMove);
             this.groupBox1.Controls.Add(this.rbCreate);
-            this.groupBox1.Location = new System.Drawing.Point(13, 13);
+            this.groupBox1.Location = new System.Drawing.Point(11, 7);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(149, 91);
+            this.groupBox1.Size = new System.Drawing.Size(127, 91);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Режим";
@@ -101,9 +104,9 @@
             // 
             this.treeView1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left)));
-            this.treeView1.Location = new System.Drawing.Point(15, 131);
+            this.treeView1.Location = new System.Drawing.Point(3, 127);
             this.treeView1.Name = "treeView1";
-            this.treeView1.Size = new System.Drawing.Size(147, 307);
+            this.treeView1.Size = new System.Drawing.Size(135, 308);
             this.treeView1.TabIndex = 1;
             this.treeView1.Visible = false;
             // 
@@ -134,7 +137,7 @@
             // checkBox3
             // 
             this.checkBox3.AutoSize = true;
-            this.checkBox3.Location = new System.Drawing.Point(22, 111);
+            this.checkBox3.Location = new System.Drawing.Point(11, 104);
             this.checkBox3.Name = "checkBox3";
             this.checkBox3.Size = new System.Drawing.Size(127, 17);
             this.checkBox3.TabIndex = 4;
@@ -227,6 +230,24 @@
             this.listBox1.TabIndex = 10;
             this.listBox1.SelectedIndexChanged += new System.EventHandler(this.listBox1_SelectedIndexChanged);
             // 
+            // slidePanel1
+            // 
+            this.slidePanel1.AnimationSpeed = 15;
+            this.slidePanel1.Appearance = System.Windows.Forms.DockStyle.Left;
+            this.slidePanel1.ButtonBorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(180)))), ((int)(((byte)(200)))), ((int)(((byte)(235)))));
+            this.slidePanel1.ButtonColor = System.Drawing.Color.FromArgb(((int)(((byte)(185)))), ((int)(((byte)(236)))), ((int)(((byte)(245)))));
+            this.slidePanel1.ButtonColor2 = System.Drawing.Color.FromArgb(((int)(((byte)(185)))), ((int)(((byte)(226)))), ((int)(((byte)(235)))));
+            this.slidePanel1.ButtonSize = 18;
+            this.slidePanel1.Controls.Add(this.groupBox1);
+            this.slidePanel1.Controls.Add(this.checkBox3);
+            this.slidePanel1.Controls.Add(this.treeView1);
+            this.slidePanel1.Location = new System.Drawing.Point(0, 0);
+            this.slidePanel1.Name = "slidePanel1";
+            this.slidePanel1.Size = new System.Drawing.Size(163, 452);
+            this.slidePanel1.TabIndex = 11;
+            this.slidePanel1.TextCollapsed = "Open";
+            this.slidePanel1.TextExpanded = "Close";
+            // 
             // anglePanel1
             // 
             this.anglePanel1.Altitude = 42F;
@@ -244,6 +265,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.slidePanel1);
             this.Controls.Add(this.listBox1);
             this.Controls.Add(this.checkBox4);
             this.Controls.Add(this.textBox2);
@@ -253,11 +275,8 @@
             this.Controls.Add(this.label4);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.checkBox3);
             this.Controls.Add(this.checkBox2);
             this.Controls.Add(this.checkBox1);
-            this.Controls.Add(this.treeView1);
-            this.Controls.Add(this.groupBox1);
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "GridTableBuilder";
@@ -268,6 +287,9 @@
             this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.MainForm_MouseUp);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.slidePanel1)).EndInit();
+            this.slidePanel1.ResumeLayout(false);
+            this.slidePanel1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -292,6 +314,7 @@
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.CheckBox checkBox4;
         private System.Windows.Forms.ListBox listBox1;
+        private SlidePanelControl.SlidePanel slidePanel1;
     }
 }
 
