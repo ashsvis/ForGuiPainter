@@ -121,6 +121,14 @@ namespace SlidePanelControl
                 case DockStyle.Top: Anchor = AnchorStyles.Top; break;
                 case DockStyle.Bottom: Anchor = AnchorStyles.Bottom; break;
             }
+            // для выравнивания панели по высоте формы:
+            //switch (Appearance)
+            //{
+            //    case DockStyle.Left: Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Bottom; break;
+            //    case DockStyle.Right: Anchor = AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom; break;
+            //    case DockStyle.Top: Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right; break;
+            //    case DockStyle.Bottom: Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right; break;
+            //}
         }
 
         Rectangle GetButtonRect()
